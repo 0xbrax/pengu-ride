@@ -6,7 +6,7 @@ export class Enemy {
     this.gameInstance = new App();
     this.baseScale = null;
     this.baseHeight = null;
-    this.baseYOffset = 150;
+    this.baseYOffset = 132;
     this.scale = 0.75;
 
     this.debugGraphics = null;
@@ -18,7 +18,7 @@ export class Enemy {
     this.hitboxConfig = {
       width: 0.24,
       height: 0.36,
-      offsetX: 0.14,
+      offsetX: 0.14 * this.dir,
       offsetY: 0.09,
     };
 
@@ -44,11 +44,11 @@ export class Enemy {
     }
 
 // 3) Crea i due set di texture (walk/attack)
-    const framesWalk   = makeRangeFrames("0_specialty_walk_",   0, 19);
-    const framesAttack = makeRangeFrames("0_specialty_attack_", 0, 19);
+    this.framesWalk   = makeRangeFrames("0_specialty_walk_",   0, 19);
+    this.framesAttack = makeRangeFrames("0_specialty_attack_", 0, 19);
 
 // 4) UN solo AnimatedSprite, parti con walk
-    this.sprite = new AnimatedSprite(framesWalk);
+    this.sprite = new AnimatedSprite(this.framesWalk);
     this.sprite.anchor.set(0.5);
 
     this.sprite.animationSpeed = 0.3;
@@ -59,33 +59,35 @@ export class Enemy {
     this.baseHeight = this.sprite.height;
 
     this.sprite.zIndex = 30
-    
-
-// 5) Switch di animazione
-    const playAnim = (name) => {
-      if (name === "walk") {
-        this.sprite.textures = framesWalk;
-        this.sprite.loop = true;
-        this.sprite.animationSpeed = 0.15;
-        this.sprite.gotoAndPlay(0);
-      } else if (name === "attack") {
-        this.sprite.textures = framesAttack;
-        this.sprite.loop = false;
-        this.sprite.animationSpeed = 0.22;
-        this.sprite.gotoAndPlay(0);
-        this.sprite.onComplete = () => playAnim("walk");
-      }
-    }
-
-    // setTimeout(() => playAnim("attack"), 1000);
 
     this.createDebugBounds();
 
-    this.sprite.x = this.gameInstance.app.screen.width / 2;
+    this.sprite.x = this.gameInstance.app.screen.width + this.sprite.width;
     this.resize();
 
     this.gameInstance.app.stage.addChild(this.sprite);
+  }
 
+  playAnim(name) {
+    if (name === "walk") {
+      this.sprite.textures = this.framesWalk;
+      this.sprite.loop = true;
+      this.sprite.animationSpeed = 0.15;
+      this.sprite.gotoAndPlay(0);
+    } else if (name === "attack") {
+      this.sprite.textures = this.framesAttack;
+      this.sprite.loop = false;
+      this.sprite.animationSpeed = 0.45;
+      this.sprite.gotoAndPlay(0);
+
+      this.speed = 0;
+
+      this.sprite.onComplete = () => {
+        this.speed = 120;
+
+        this.playAnim("walk");
+      }
+    }
   }
 
   createDebugBounds() {
@@ -168,16 +170,16 @@ export class Enemy {
 
     this.sprite.x += this.dir * this.speed * dt;
 
-    const W = this.gameInstance.app.screen.width;
-    const half = this.sprite.width / 2;
+    const appWidth = this.gameInstance.app.screen.width;
+    const spriteWidth = this.sprite.width;
 
-    const leftEdge  = this.sprite.x - half;
-    const rightEdge = this.sprite.x + half;
+    const leftEdge  = this.sprite.x + spriteWidth;
+    const rightEdge = this.sprite.x - spriteWidth;
 
     // collisione con bordo destro
-    if (rightEdge >= W - this.padding) {
+    if (rightEdge >= appWidth - this.padding) {
       // clamp
-      this.sprite.x = (W - this.padding) - half;
+      this.sprite.x = (appWidth - this.padding) + spriteWidth;
       // inverti direzione e flip X
       this.dir = -1;
       this.hitboxConfig.offsetX = -this.hitboxConfig.offsetX;
@@ -187,7 +189,7 @@ export class Enemy {
     // collisione con bordo sinistro
     if (leftEdge <= this.padding) {
       // clamp
-      this.sprite.x = this.padding + half;
+      this.sprite.x = this.padding - spriteWidth;
       // inverti direzione e flip X
       this.dir = 1;
       this.hitboxConfig.offsetX = -this.hitboxConfig.offsetX;

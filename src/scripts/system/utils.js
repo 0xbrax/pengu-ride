@@ -11,15 +11,12 @@ export const $globals = {
 export const isMobile = !window.matchMedia('screen and (min-width: 576px)').matches;
 
 // Collision detection
-export const testForAABB = (object1, object2) => {
-    const bounds1 = object1.getHitbox() ? object1.getHitbox() : object1.getBounds();
-    const bounds2 = object2.getHitbox ? object2.getHitbox() : object2.getBounds();
-
+export const testForAABB = (objectBounds1, objectBounds2) => {
     return (
-      bounds1.x < bounds2.x + bounds2.width &&
-      bounds1.x + bounds1.width > bounds2.x &&
-      bounds1.y < bounds2.y + bounds2.height &&
-      bounds1.y + bounds1.height > bounds2.y
+      objectBounds1.x < objectBounds2.x + objectBounds2.width &&
+      objectBounds1.x + objectBounds1.width > objectBounds2.x &&
+      objectBounds1.y < objectBounds2.y + objectBounds2.height &&
+      objectBounds1.y + objectBounds1.height > objectBounds2.y
     );
 };
 

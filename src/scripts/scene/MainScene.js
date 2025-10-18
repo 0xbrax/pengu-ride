@@ -4,7 +4,7 @@ import { Background } from "@/scripts/game/Background.js";
 import {isMobile, testForAABB} from "../system/utils.js";
 import {App} from "@/scripts/system/App.js";
 import {CoinManager} from "@/scripts/game/CoinManager.js";
-import {Character} from "@/scripts/game/Character.js";
+import {Character, CHARACTER_ANIMATIONS} from "@/scripts/game/Character.js";
 import {Container} from "pixi.js";
 import {Enemy} from "@/scripts/game/Enemy.js";
 
@@ -44,15 +44,13 @@ export class MainScene {
         });
         void this.coins.init();
 
-
-        // this.gameInstance.container.addEventListener('pointerdown', (event) => {
-        //     console.log("CLICK")
-        //     this.character.jump();
-        // });
+        this.play();
     }
 
     play() {
-        //
+        this.gameInstance.container.addEventListener('pointerdown', (event) => {
+            this.character.jump();
+        });
     }
 
     resize(originalRect) {
@@ -68,18 +66,29 @@ export class MainScene {
     }
 
     update(dt) {
-        this.background.update(dt);
         this.character.update(dt);
         this.enemy.update(dt);
-        this.coins.update(dt);
+
+        if (this.character.spine && this.character.isAlive) {
+            this.background.update(dt);
+            this.coins.update(dt);
+        }
 
         if (this.character.spine && this.coins._alive) {
             this.coins._alive.forEach((coin) => {
-                if (testForAABB(this.character, coin)) {
+                if (testForAABB(this.character.getHitbox(), coin.getBounds())) {
                     this.coins._despawn(coin);
-                    console.log("HIT")
                 }
             })
+        }
+
+        if (this.character.spine && this.enemy.sprite && this.character.isAlive) {
+            if (testForAABB(this.character.getHitbox(), this.enemy.getHitbox())) {
+                this.enemy.playAnim("attack");
+                this.character.spine.state.addAnimation(0, CHARACTER_ANIMATIONS.DEAD, false, 0.2);
+
+                this.character.isAlive = false;
+            }
         }
     }
 }

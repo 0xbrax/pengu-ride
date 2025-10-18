@@ -2,7 +2,7 @@ import {Assets, Graphics} from "pixi.js";
 import {Spine} from "@esotericsoftware/spine-pixi-v8";
 import {App} from "@/scripts/system/App.js";
 
-const CHARACTER_ANIMATIONS = {
+export const CHARACTER_ANIMATIONS = {
   ARCHERY: "Archery",
   DEAD: "Dead",
   DRIVING: "Driving",
@@ -28,8 +28,8 @@ export class Character {
     // --- Physics ---
     // "Base" values independent of scale; multiplied by current scale
     this.vy = 0; // vertical velocity (px/s)
-    this.gravityBase = 2400; // base gravity (px/s^2)
-    this.jumpImpulseBase = 900; // base upward impulse (px/s)
+    this.gravityBase = 1800; // base gravity (px/s^2)
+    this.jumpImpulseBase = 1200; // base upward impulse (px/s)
 
     // Effective values (depend on current scale)
     this.gravity = this.gravityBase;
@@ -39,8 +39,8 @@ export class Character {
     this._scaleMul = 1;
 
     // gaps (scaled on resize): keep a bit of headroom and floor room
-    this.topGapFactor = 0.12;    // % of character height from top
-    this.bottomGapFactor = 0.06; // % of character height from bottom
+    this.topGapFactor = 0.06;    // % of character height from top
+    this.bottomGapFactor = 0.12; // % of character height from bottom
     this.minY = 0; // computed on resize
     this.maxY = 0; // computed on resize
 
@@ -50,11 +50,13 @@ export class Character {
     this.debugGraphics = null;
 
     this.hitboxConfig = {
-      width: 0.28,
-      height: 0.54,
+      width: 0.21,
+      height: 0.45,
       offsetX: 0.03,
       offsetY: 0.15,
     };
+
+    this.isAlive = true;
 
     void this.createSpine();
   }
@@ -83,14 +85,14 @@ export class Character {
     this.resize();
 
     this.gameInstance.app.stage.addChild(this.spine);
+  }
 
-    // --- Input: Flappy-style pointer ---
-    const stage = this.gameInstance.app.stage;
-    stage.eventMode = "static";
-    stage.cursor = "pointer";
-    stage.on("pointerdown", () => {
-      this._wantsFlap = true; // processed in update() for frame-consistency
-    });
+  jump(){
+    if (!this.spine || !this.isAlive) {
+      return;
+    }
+
+    this._wantsFlap = true; // processed in update() for frame-consistency
   }
 
   // --- Bounds helpers (scaled on resize) ---
@@ -210,7 +212,7 @@ export class Character {
 
   // --- Physics update ---
   update(dt) {
-    if (!this.spine) {
+    if (!this.spine || !this.isAlive) {
       return;
     }
 
