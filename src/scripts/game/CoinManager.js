@@ -40,9 +40,9 @@ export class CoinManager {
     this.poolSize  = opts.pool ?? 256;
 
     // Grid config
-    this.gridRows       = Math.max(3, Math.floor(opts.gridRows ?? 10));
-    this.deadRowsTop    = Math.max(0, Math.floor(opts.deadRowsTop ?? 1));
-    this.deadRowsBottom = Math.max(0, Math.floor(opts.deadRowsBottom ?? 2));
+    this.gridRows       = Math.max(3, Math.floor(opts.gridRows ?? 20));
+    this.deadRowsTop    = Math.max(0, Math.floor(opts.deadRowsTop ?? 2));
+    this.deadRowsBottom = Math.max(0, Math.floor(opts.deadRowsBottom ?? 4));
     this.slotPadding    = Math.max(0, Math.floor(opts.slotPadding ?? 0)); // TODO fix (and resize slot column)
 
     // Patterns
@@ -74,9 +74,9 @@ export class CoinManager {
     this._spawnRightOffset = 30;
 
     // gaps
-    this.gapMinSlots = 10;
-    this.gapMaxSlots = 20;
-    this.gapChance   = 0.35;
+    this.gapMinSlots = 5;
+    this.gapMaxSlots = 15;
+    this.gapChance   = 0.3;
     this._gapSlotsLeft = 0;
 
     // pattern queue (per column: one row index or array of row indices)

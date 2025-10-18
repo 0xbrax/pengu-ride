@@ -22,8 +22,9 @@ export class Character {
     this.gameInstance = new App();
     this.baseScale = null;
     this.baseHeight = null;
+    this.baseXOffset = -200;
     this.baseYOffset = 300;
-    this.scale = 0.5;
+    this.scale = 0.25;
 
     // --- Physics ---
     // "Base" values independent of scale; multiplied by current scale
@@ -39,8 +40,8 @@ export class Character {
     this._scaleMul = 1;
 
     // gaps (scaled on resize): keep a bit of headroom and floor room
-    this.topGapFactor = 0.06;    // % of character height from top
-    this.bottomGapFactor = 0.12; // % of character height from bottom
+    this.topGapFactor = 0.0;    // % of character height from top
+    this.bottomGapFactor = 0.30; // % of character height from bottom
     this.minY = 0; // computed on resize
     this.maxY = 0; // computed on resize
 
@@ -182,11 +183,8 @@ export class Character {
 
     this.spine.scale.set(newScale);
 
-    // center X stays same
-    this.spine.x = window.innerWidth / 2;
-
-    // position Y based on original offset, scaled
-    this.spine.y = (window.innerHeight / 2) + (this.baseYOffset * (newScale / this.baseScale));
+    this.spine.x = (this.gameInstance.app.screen.width / 2) + (this.baseXOffset * (newScale / this.baseScale));
+    this.spine.y = (this.gameInstance.app.screen.height / 2) + (this.baseYOffset * (newScale / this.baseScale));
 
     // --- Update scale multiplier and physics ---
     this._scaleMul = this.spine.scale.x / this.baseScale; // quanto siamo più grandi del base
@@ -212,7 +210,7 @@ export class Character {
 
   // --- Physics update ---
   update(dt) {
-    if (!this.spine || !this.isAlive) {
+    if (!this.spine) {
       return;
     }
 

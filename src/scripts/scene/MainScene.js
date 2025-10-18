@@ -1,7 +1,7 @@
 import * as PIXI from "pixi.js";
 import { Background } from "@/scripts/game/Background.js";
 
-import {isMobile, testForAABB} from "../system/utils.js";
+import {testForAABB} from "@/scripts/system/utils.js";
 import {App} from "@/scripts/system/App.js";
 import {CoinManager} from "@/scripts/game/CoinManager.js";
 import {Character, CHARACTER_ANIMATIONS} from "@/scripts/game/Character.js";

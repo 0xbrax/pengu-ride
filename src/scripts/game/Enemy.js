@@ -6,8 +6,8 @@ export class Enemy {
     this.gameInstance = new App();
     this.baseScale = null;
     this.baseHeight = null;
-    this.baseYOffset = 132;
-    this.scale = 0.75;
+    this.baseYOffset = 90;
+    this.scale = 0.4;
 
     this.debugGraphics = null;
 
