@@ -1,0 +1,26 @@
+{
+  "name": "pengu-ride",
+  "private": false,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^5.0.4",
+    "vite": "^7.1.7",
+    "vite-plugin-restart": "^1.0.0"
+  },
+  "dependencies": {
+    "@esotericsoftware/spine-pixi-v8": "^4.2.93",
+    "@tailwindcss/vite": "^4.1.14",
+    "howler": "^2.2.4",
+    "pixi.js": "^8.14.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "tailwindcss": "^4.1.14",
+    "zustand": "^5.0.8"
+  }
+}

@@ -1,0 +1,25 @@
+@import "tailwindcss";
+
+* {
+  /*margin: 0;*/
+  /*padding: 0;*/
+  /*box-sizing: border-box;*/
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  /*font-family: Ubuntu, sans-serif;*/
+  /*background-color: #000000;*/
+  /*color: #ffffff;*/
+  width: 100%;
+  height: 100vh; /* fallback */
+  height: 100svh;
+  position: relative;
+  overflow: hidden;
+}
+
+canvas {
+  position: relative;
+  z-index: 0;
+}
