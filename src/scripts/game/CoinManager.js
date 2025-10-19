@@ -5,13 +5,13 @@
 
 import { Container, Sprite, Assets } from "pixi.js";
 import { COIN_SPEED } from "@/scripts/game/Background.js";
+import {ASSETS_MAP} from "@/scripts/system/ASSETS.js";
 
 export class CoinManager {
   /**
    * @param {import("pixi.js").Application} app
    * @param {object} [opts]
-   * @param {string}  [opts.src="/Coin_01.png"]
-   * @param {number}  [opts.speed=COIN_SPEED||1]      Horizontal speed (px/s, moving left)
+   * @param {number}  [opts.speed=COIN_SPEED||60]      Horizontal speed (px/s, moving left)
    * @param {number}  [opts.pool=256]                 Initial pool size
    * @param {number}  [opts.gridRows=10]              Total grid rows (height split). Default 10.
    * @param {number}  [opts.deadRowsTop=1]            Non-spawn rows at top (padding). Default 1.
@@ -24,6 +24,7 @@ export class CoinManager {
    */
   constructor(app, opts = {}) {
     this.app = app;
+    this.ASSETS_MAP = ASSETS_MAP;
 
     // Scene graph
     this.container = new Container();
@@ -35,9 +36,8 @@ export class CoinManager {
     this.paused = false;
 
     // Config (constructor-only)
-    this.src       = opts.src ?? "/Coin_01.png";
-    this.speed     = opts.speed ?? (COIN_SPEED ?? 1);
-    this.poolSize  = opts.pool ?? 256;
+    this.speed     = opts.speed ?? (COIN_SPEED ?? 60);
+    this.poolSize  = opts.pool ?? 128; // 256
 
     // Grid config
     this.gridRows       = Math.max(3, Math.floor(opts.gridRows ?? 20));
@@ -88,8 +88,8 @@ export class CoinManager {
   }
 
   // ---------- Init ----------
-  async init() {
-    this._texture = await Assets.load(this.src);
+  init() {
+    this._texture = Assets.get(this.ASSETS_MAP.texture[0].alias); // coin
     this._measureTextureLogicalSize();
     this._recomputeGrid();
 

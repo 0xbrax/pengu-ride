@@ -3,28 +3,14 @@ import {Assets, TilingSprite, Filter, GlProgram, BlurFilter} from "pixi.js";
 import frostVertexShader from "@/shaders/frost/vertex.glsl";
 import frostFragmentShader from "@/shaders/frost/fragment.glsl";
 
-const vertex = `
-    in vec2 aPosition;
-
-    void main(void) {
-        gl_Position = vec4(aPosition * 2.0 - 1.0, 0.0, 1.0);
-    }
-`;
-
-const fragment = `
-    void main(void) {
-        gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
-    }
-`;
-
-export class LoaderScene {
+export class LoadingScene {
     constructor() {
         this.gameInstance = new App();
-        void this.createLoader();
+        void this.createLoading();
     }
 
-    async createLoader() {
-        const texture = await Assets.load("/4_game_background.png");
+    async createLoading() {
+        const texture = await Assets.load("/game-background.png");
         texture.source.addressMode = "repeat";
 
         this.sprite = new TilingSprite({
@@ -36,15 +22,12 @@ export class LoaderScene {
         this.updateSpriteSize();
         this.gameInstance.app.stage.addChild(this.sprite);
 
-
-
-// Create with custom settings
-//         const blurFilter = new BlurFilter({
-//             strength: 8,      // Overall blur strength
-//             quality: 4,       // Blur quality (higher = better but slower)
-//             kernelSize: 5   ,  // Size of blur kernel matrix
-//             repeatEdgePixels: true, // Enable edge pixel clamping
-//         });
+        this.blurFilter = new BlurFilter({
+            strength: 3, // Overall blur strength
+            quality: 2, // Blur quality (higher = better but slower)
+            kernelSize: 5, // Size of blur kernel matrix: 3, 5, 7, 9, 15 ... (higher = better but slower)
+            repeatEdgePixels: true, // Enable edge pixel clamping
+        });
 
         this.frostFilter = new Filter({
             glProgram: new GlProgram({ vertex: frostVertexShader, fragment: frostFragmentShader }),
@@ -54,23 +37,18 @@ export class LoaderScene {
                             this.gameInstance.app.screen.width,
                             this.gameInstance.app.screen.height
                         ], type: "vec2<f32>" },
-                    uProgress: { value: 0.0, type: "f32" }, // 0.0 ... 1.0
+                    uProgress: { value: 1.0, type: "f32" }, // 0.0 ... 1.0
                 },
             },
         });
 
-        this.sprite.filters = [this.frostFilter];
+        this.sprite.filters = [this.frostFilter, this.blurFilter];
+    }
 
-        const totalElements = 18;
-        const delay = 300;
+    setProgress(progress) {
+        const reversedProgress = 1.0 - progress;
 
-        for (let i = 0; i < totalElements; i++) {
-            setTimeout(() => {
-                const progress = (i + 1) / totalElements; // 0.055, 0.111, 0.166... fino a 1.0
-                this.frostFilter.resources.frostUniforms.uniforms.uProgress = progress;
-                console.log(`Elemento ${i + 1}/${totalElements} - Progress: ${progress.toFixed(3)}`);
-            }, i * delay);
-        }
+        this.frostFilter.resources.frostUniforms.uniforms.uProgress = reversedProgress;
     }
 
     updateSpriteSize() {
@@ -82,12 +60,11 @@ export class LoaderScene {
 
         const scaleY = this.gameInstance.app.screen.height / this.originalHeight;
         this.sprite.tileScale.set(scaleY);
-        this.sprite.tileScale.y *= -1;
+        // this.sprite.tileScale.y *= -1;
 
         this.sprite.height = this.gameInstance.app.screen.height;
         this.sprite.width = this.gameInstance.app.screen.width;
 
-        // aggiorna la risoluzione del filtro se presente
         if (this.frostFilter) {
             this.frostFilter.resources.frostUniforms.uniforms.uResolution = [this.gameInstance.app.screen.width, this.gameInstance.app.screen.height];
         }
@@ -96,4 +73,29 @@ export class LoaderScene {
     resize() {
         this.updateSpriteSize();
     }
+
+    destroy() {
+        if (this.sprite && this.sprite.parent) {
+            this.sprite.parent.removeChild(this.sprite);
+        }
+
+        if (this.blurFilter) {
+            this.blurFilter.destroy();
+            this.blurFilter = null;
+        }
+
+        if (this.frostFilter) {
+            this.frostFilter.destroy();
+            this.frostFilter = null;
+        }
+
+        if (this.sprite) {
+            this.sprite.destroy();
+            this.sprite = null;
+        }
+
+        this.originalHeight = null;
+        this.gameInstance = null;
+    }
+
 }

@@ -3,10 +3,10 @@ import './style.css';
 
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import ReactApp from './ReactApp.jsx';
 
-import { $configs } from "./scripts/system/SETUP.js";
-import { $globals, exitFullscreen } from "./scripts/system/utils.js";
+import ReactApp from '@/ReactApp.jsx';
+import { $globals } from "@/scripts/system/SETUP.js";
+import { exitFullscreen } from "@/scripts/system/utils.js";
 import { Howler } from "howler";
 
 

@@ -1,12 +1,4 @@
-export const $globals = {
-    assets: {},
-    sceneManager: null,
-    isAudioActive: true,
-    isFullscreenActive: false,
-    isWakelockActive: false,
-};
-
-export const isMobile = !window.matchMedia('screen and (min-width: 576px)').matches;
+import {$globals} from "@/scripts/system/SETUP.js";
 
 // Collision detection
 export const testForAABB = (objectBounds1, objectBounds2) => {

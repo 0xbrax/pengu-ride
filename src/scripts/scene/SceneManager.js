@@ -6,7 +6,6 @@ export class SceneManager {
     }
 
     start(scene) {
-        this.destroy();
         this.scene = scene
     }
 

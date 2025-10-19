@@ -1,17 +1,16 @@
-import * as PIXI from "pixi.js";
-import { Background } from "@/scripts/game/Background.js";
-
-import {testForAABB} from "@/scripts/system/utils.js";
+import {EventEmitter} from "pixi.js";
 import {App} from "@/scripts/system/App.js";
+import { Background } from "@/scripts/game/Background.js";
 import {CoinManager} from "@/scripts/game/CoinManager.js";
 import {Character} from "@/scripts/game/Character.js";
 import {Enemy} from "@/scripts/game/Enemy.js";
+import {testForAABB} from "@/scripts/system/utils.js";
 
-export class MainScene {
+export class MainScene extends EventEmitter {
     constructor() {
+        super();
         this.gameInstance = new App();
 
-        // this.gameInstance.app.stage.addChild(this.container);
 
         this.background = new Background();
         this.character = new Character();
@@ -36,16 +35,13 @@ export class MainScene {
                 random: 2,
             },
         });
-        void this.coins.init();
+        this.coins.init();
 
         this.play();
     }
 
     play() {
-
-        setTimeout(() => {
-            this.character.jump();
-        }, 500)
+        this.character.jump();
 
         this.gameInstance.container.addEventListener('pointerdown', (event) => {
             this.character.jump();
@@ -59,10 +55,9 @@ export class MainScene {
         this.coins.resize();
     }
 
-    destroy() {
-        // this.gameInstance.app.stage.removeChild(this.container);
-        // this.container.destroy();
-    }
+    // destroy() {
+    //     // TODO
+    // }
 
     update(dt) {
         this.character.update(dt);
@@ -76,6 +71,7 @@ export class MainScene {
         if (this.character.spine && this.coins._alive) {
             this.coins._alive.forEach((coin) => {
                 if (testForAABB(this.character.getHitbox(), coin.getBounds())) {
+                    this.emit("coin-collected");
                     this.coins._despawn(coin);
                 }
             })

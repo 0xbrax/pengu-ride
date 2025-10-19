@@ -1,9 +1,12 @@
 import {App} from "@/scripts/system/App.js";
 import {AnimatedSprite, Assets, Graphics} from "pixi.js";
+import {ASSETS_MAP} from "@/scripts/system/ASSETS.js";
 
 export class Enemy {
   constructor() {
     this.gameInstance = new App();
+    this.ASSETS_MAP = ASSETS_MAP;
+
     this.baseScale = null;
     this.baseHeight = null;
     this.baseYOffset = 90;
@@ -23,11 +26,11 @@ export class Enemy {
       offsetY: 0.09,
     };
 
-    void this.createSprite();
+    this.createSprite();
   }
 
-  async createSprite() {
-    const sheet = await Assets.load('/sprite/spritesheet.json');
+  createSprite() {
+    const sheet = Assets.get(this.ASSETS_MAP.enemy[0].alias); // json
 
     const pad3 = (n) => String(n).padStart(3, "0");
     function makeRangeFrames(prefix, start, end, ext = ".png") {

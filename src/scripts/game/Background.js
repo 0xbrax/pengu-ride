@@ -1,42 +1,30 @@
 import {Assets, Container, TilingSprite} from "pixi.js";
 import { App } from "@/scripts/system/App";
-
-const paths = [
-    "/background/1.png",
-    "/background/2.png",
-    "/background/3.png",
-    "/background/4.png",
-    "/background/5.png",
-    "/background/6.png",
-    "/background/7.png",
-];
+import {ASSETS_MAP} from "@/scripts/system/ASSETS.js";
 
 const BASE_SPEED = 30;
 const STEP_SPEED = 24;
 
-export const COIN_SPEED = BASE_SPEED + STEP_SPEED * (paths.length - 1);
-
-
+export const COIN_SPEED = BASE_SPEED + STEP_SPEED * (ASSETS_MAP.background.length - 1);
 
 export class Background {
     constructor() {
         this.gameInstance = new App();
+        this.ASSETS_MAP = ASSETS_MAP;
 
         this.container = new Container({
             sortableChildren: true,
         });
         this.container.zIndex = 0;
-        void this.createLayers();
+        this.createLayers();
     }
 
-    async createLayers() {
-        this.textures = await Promise.all(paths.map(p => Assets.load(p)));
+    createLayers() {
+        this.textures = this.ASSETS_MAP.background.map(tex => Assets.get(tex.alias));
 
         this.layers = this.textures.map((tex, i) => {
-            tex.source.addressMode = "repeat";
-
             const ts = new TilingSprite({
-                texture: tex,
+                texture: this.textures[i],
                 width: this.gameInstance.app.screen.width,
                 height: this.gameInstance.app.screen.height,
             });

@@ -1,25 +1,27 @@
 import * as PIXI from "pixi.js"
-import { Application } from "pixi.js";
+import {Application, EventEmitter} from "pixi.js";
 
 // import { gsap } from "gsap";
 // import { PixiPlugin } from "gsap/PixiPlugin";
-import { $globals } from "./utils.js";
-import { Loader } from "./Loader.js";
-import { SceneManager } from "../scene/SceneManager.js";
-import { LoaderScene } from "../scene/LoaderScene.js";
-import { MainScene } from "../scene/MainScene.js";
+import { Loader } from "@/scripts/system/Loader.js";
+import { SceneManager } from "@/scripts/scene/SceneManager.js";
+import { LoadingScene } from "@/scripts/scene/LoadingScene.js";
+import { MainScene } from "@/scripts/scene/MainScene.js";
 
-let instance = null; // one instance only about this class
+let instance = null; // one instance only
 
-export class App {
+export class App extends EventEmitter {
     constructor(container) {
+        super();
+
         if (instance) {
             return instance;
         }
         instance = this;
 
-        this.app = null;
         this.container = container;
+        this.app = null;
+        this.sceneManager = null;
 
         void this.run();
     }
@@ -49,43 +51,45 @@ export class App {
 
         this.container.appendChild(this.app.canvas);
 
-        $globals.sceneManager = new SceneManager();
+        this.sceneManager = new SceneManager();
+
         this.app.ticker.add(ticker => {
             const dt = ticker.deltaMS / 1_000;
-            $globals.sceneManager.update(dt);
+            this.sceneManager.update(dt);
         });
 
-        this.start();
-        
-        // this.loader = new Loader();
-        //
-        // this.loader.preloadAssets().then(() => {
-        //     this.loadingScene = new LoaderScene();
-        //
-        //     this.loader.EE.on('progress', (progress) => {
-        //         this.loadingScene.setText(progress);
-        //     });
-        //
-        //     this.loader.loadAssets().then(() => {
-        //         this.start();
-        //
-        //         this.loadingScene.createDisclaimer();
-        //         this.loadingScene.setText('enter');
-        //         this.loadingScene.content.style.cursor = 'pointer';
-        //         this.loadingScene.content.addEventListener('click', () => {
-        //             this.loadingScene.remove();
-        //             $globals.assets.audio['BackgroundMusicTrack'].play();
-        //             $globals.sceneManager.scene.slot.reelsFadeIn();
-        //         }, { once: true });
-        //     });
-        // });
+        void this.start();
     }
 
-    start() {
-        // $globals.sceneManager.start(new MainScene());
-        const scene = new LoaderScene();
+    async start() {
+        const loadingScene = new LoadingScene();
+        this.sceneManager.start(loadingScene);
 
-        $globals.sceneManager.start(scene);
+        await loadingScene.createLoading();
+
+        this.loader = new Loader();
+        this.loader.on("progress", (progress) => {
+            loadingScene.setProgress(progress);
+            this.emit("progress", progress);
+            console.log("PROGRESS: ", progress);
+
+            // loading complete
+            if (progress === 1) {
+                requestAnimationFrame(() => {
+                    this.emit("ready");
+                    console.log("READY");
+
+                    this.sceneManager.destroy();
+
+                    requestAnimationFrame(() => {
+                        this.sceneManager.start(new MainScene());
+                        this.sceneManager.scene.on("coin-collected", () => {
+                            this.emit("coin-collected");
+                        })
+                    });
+                });
+            }
+        })
 
         this.resize(this.originalRect);
         window.addEventListener('resize', () => {
@@ -95,6 +99,6 @@ export class App {
 
     resize(originalRect) {
         this.app.renderer.resize(window.innerWidth, window.innerHeight);
-        $globals.sceneManager.resize(originalRect);
+        this.sceneManager.resize(originalRect);
     }
 }

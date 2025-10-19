@@ -1,6 +1,7 @@
 import {Assets, Graphics} from "pixi.js";
 import {Spine} from "@esotericsoftware/spine-pixi-v8";
 import {App} from "@/scripts/system/App.js";
+import {ASSETS_MAP} from "@/scripts/system/ASSETS.js";
 
 const CHARACTER_ANIMATIONS = {
   ARCHERY: "Archery",
@@ -20,6 +21,8 @@ const CHARACTER_ANIMATIONS = {
 export class Character {
   constructor() {
     this.gameInstance = new App();
+    this.ASSETS_MAP = ASSETS_MAP;
+
     this.baseScale = null;
     this.baseHeight = null;
     this.baseXOffset = -200;
@@ -60,17 +63,13 @@ export class Character {
 
     this.isAlive = true;
 
-    void this.createSpine();
+    this.createSpine();
   }
 
-  async createSpine() {
-    Assets.add({alias: "spineData", src: "/spine/Character.json"});
-    Assets.add({alias: "spineAtlas", src: "/spine/Character.atlas"});
-    await Assets.load(["spineData", "spineAtlas"]);
-
+  createSpine() {
     this.spine = Spine.from({
-      skeleton: "spineData",
-      atlas: "spineAtlas",
+      skeleton: this.ASSETS_MAP.character[0].alias, // json
+      atlas: this.ASSETS_MAP.character[1].alias, // atlas
     });
 
     this.spine.state.data.defaultMix = 0.2;

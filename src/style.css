@@ -18,8 +18,3 @@ body {
   position: relative;
   overflow: hidden;
 }
-
-canvas {
-  position: relative;
-  z-index: 0;
-}

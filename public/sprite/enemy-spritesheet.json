@@ -804,7 +804,7 @@
 	"meta": {
 		"app": "http://www.codeandweb.com/texturepacker",
 		"version": "1.0",
-		"image": "spritesheet.png",
+		"image": "enemy-spritesheet.png",
 		"format": "RGBA8888",
 		"size": {
 			"w": 3584,

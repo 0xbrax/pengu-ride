@@ -1,87 +1,47 @@
 import { Assets, EventEmitter } from "pixi.js";
 import { Howl } from 'howler';
-import { $globals } from "./utils.js";
-import { assets } from "./Assets.js";
+import { ASSETS_MAP } from "@/scripts/system/ASSETS.js";
 
-export class Loader {
+export class Loader extends EventEmitter {
     constructor() {
-        this.EE = new EventEmitter();
-        this.assets = assets;
+        super();
 
-        for (const key in this.assets) {
-            $globals.assets[key] = {};
-        }
+        this.ASSETS_MAP = ASSETS_MAP;
+
+        this.loadedAssetsCount = 0;
+        this.totalAssetsCount = Object.keys(this.ASSETS_MAP).reduce((acc, key) => {
+            return acc + Object.keys(this.ASSETS_MAP[key]).length;
+        }, 0);
+        
+        void this.loadAssets();
     }
 
-    preloadAssets() {
-        return new Promise(async resolve => {
-            $globals.assets.preload['LogoFullImage'] = this.assets.preload['LogoFullImage'];
-
-            resolve();
-        });
+    // 0.0 ... 1.0
+    // 0 is not emitted
+    updateProgress() {
+        this.loadedAssetsCount++;
+        const progress = this.loadedAssetsCount / this.totalAssetsCount;
+        this.emit('progress', progress);
     }
 
     loadAssets() {
         return new Promise(async resolve => {
-            const totalAssetsCount = Object.keys(this.assets).reduce((acc, key) => {
-                if (key === 'preload') return acc;
-                return acc + Object.keys(this.assets[key]).length;
-            }, 0);
+            for (const key in this.ASSETS_MAP) {
+                // if (key === 'audio') {
+                //     for (const subKey in this.ASSETS_MAP[key]) {
+                //         // $globals.assets[key][subKey] = await this.loadSound(this.ASSETS_MAP[key][subKey]);
+                //         this.updateProgress();
+                //     }
+                //     continue;
+                // }
+                
+                for (const currentAsset of this.ASSETS_MAP[key]) {
+                    await Assets.load({ alias: currentAsset.alias, src: currentAsset.src });
 
-            let loadedAssetsCount = 0;
-            const updateProgress = () => {
-                const progress = parseInt((loadedAssetsCount / totalAssetsCount) * 100);
-                this.EE.emit('progress', progress);
-            };
-            updateProgress();
-
-            for (const key in this.assets) {
-                if (key === 'preload') continue;
-
-                if (key === 'audio') {
-                    for (const subKey in this.assets[key]) {
-                        $globals.assets[key][subKey] = await this.loadSound(this.assets[key][subKey]);
-
-                        loadedAssetsCount++;
-                        updateProgress();
-                    }
-                    continue;
+                    this.updateProgress();
                 }
 
-                if (key === 'symbols' || key === 'character') {
-                    for (const subKey in this.assets[key]) {
-                        Assets.add({ alias: subKey, src: this.assets[key][subKey] });
-                        $globals.assets[key][subKey] = await Assets.load(subKey);
-
-                        loadedAssetsCount++;
-                        updateProgress();
-                    }
-
-                    continue;
-                }
-
-                if (key === 'other') {
-                    for (const subKey in this.assets[key]) {
-                        $globals.assets[key][subKey] = this.assets[key][subKey];
-                        loadedAssetsCount++;
-                        updateProgress();
-                    }
-
-                    continue;
-                }
-
-                for (const subKey in this.assets[key]) {
-                    Assets.add({ alias: subKey, src: this.assets[key][subKey] });
-                    $globals.assets[key][subKey] = await Assets.load(subKey);
-
-                    loadedAssetsCount++;
-                    updateProgress();
-                }
             }
-
-            loadedAssetsCount = totalAssetsCount;
-            updateProgress();
-            this.audioMixer();
 
             resolve();
         });
@@ -98,11 +58,11 @@ export class Loader {
         });
     }
 
-    audioMixer() {
-        $globals.assets.audio['BackgroundMusicTrack'].volume(0.3);
-        $globals.assets.audio['BackgroundMusicTrack'].loop(true);
-
-        $globals.assets.audio['SlotClickSfx'].volume(0.5);
-        $globals.assets.audio['SlotTickSfx'].volume(0.8);
-    }
+    // audioMixer() {
+    //     $globals.assets.audio['BackgroundMusicTrack'].volume(0.3);
+    //     $globals.assets.audio['BackgroundMusicTrack'].loop(true);
+    //
+    //     $globals.assets.audio['SlotClickSfx'].volume(0.5);
+    //     $globals.assets.audio['SlotTickSfx'].volume(0.8);
+    // }
 }
