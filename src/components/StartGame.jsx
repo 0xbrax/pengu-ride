@@ -9,8 +9,27 @@ export default function StartGame({
 }) {
   const [isCountingDown, setIsCountingDown] = useState(false);
   const [currentNumber, setCurrentNumber] = useState('');
+  const startButtonRef = useRef(null);
   const countdownRef = useRef(null);
   const numberRef = useRef(null);
+
+  useGSAP(() => {
+    if (!isCountingDown && startButtonRef.current) {
+      gsap.fromTo(startButtonRef.current,
+        {
+          scale: 0,
+          opacity: 0
+        },
+        {
+          scale: 1,
+          opacity: 1,
+          duration: 0.6,
+          ease: "back.out(1.7)"
+        }
+      );
+    }
+  }, [isCountingDown]);
+
 
   const { contextSafe } = useGSAP();
 
@@ -97,6 +116,7 @@ export default function StartGame({
   return (
     <>
       <div
+        ref={startButtonRef}
         onPointerDown={handleCountdown}
         className="absolute top-4/6 left-1/2 -translate-x-1/2 -translate-y-1/2 group cursor-pointer"
         style={{ display: isCountingDown ? 'none' : 'flex' }}

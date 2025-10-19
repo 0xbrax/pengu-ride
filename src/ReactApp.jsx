@@ -22,13 +22,11 @@ export default function ReactApp() {
 
   useEffect(() => {
     if (gameContainer.current && !gameInstance) {
-
-      // TODO use store (?)
       setGameInstance(new PixiApp(gameContainer.current));
     }
 
     return () => {
-      // destroy and set instance to null
+      // clean up
       gameInstance?.destroy();
       setGameInstance(null);
     }

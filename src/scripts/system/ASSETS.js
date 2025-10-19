@@ -51,6 +51,14 @@ export const ASSETS_MAP = {
         {
             alias: "enemyImage",
             src: "/sprite/enemy-spritesheet.png"
+        },
+        {
+            alias: "slashData",
+            src: "/sprite/slash-spritesheet.json"
+        },
+        {
+            alias: "slashImage",
+            src: "/sprite/slash-spritesheet.png"
         }
     ],
     texture: [
@@ -63,13 +71,5 @@ export const ASSETS_MAP = {
         //     src: "/texture/diamond.png"
         // }
     ],
-    // audio: {
-    //     BackgroundMusicTrack: '/ASSETS/audio/sunny-fruit_strawberry_COMPRESSED.mp3',
-    //     SlotClickSfx: '/ASSETS/audio/slot_click_COMPRESSED.mp3',
-    //     SlotTickSfx: '/ASSETS/audio/slot_tick_COMPRESSED.mp3',
-    //     SlotWinSfx: '/ASSETS/audio/slot_win_COMPRESSED.mp3',
-    //     SlotMegaWinSfx: '/ASSETS/audio/slot_mega-win_COMPRESSED.mp3',
-    //     SlotWinJollySfx: '/ASSETS/audio/slot_win-jolly_COMPRESSED.mp3',
-    //     SlotFreeSpinSfx: '/ASSETS/audio/slot_free-spin_COMPRESSED.mp3'
-    // },
+    // audio: [],
 };

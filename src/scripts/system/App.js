@@ -1,4 +1,3 @@
-import * as PIXI from "pixi.js"
 import {Application, EventEmitter} from "pixi.js";
 
 // import { gsap } from "gsap";
