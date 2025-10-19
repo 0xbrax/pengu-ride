@@ -8,6 +8,9 @@ import { SceneManager } from "@/scripts/scene/SceneManager.js";
 import { LoadingScene } from "@/scripts/scene/LoadingScene.js";
 import { MainScene } from "@/scripts/scene/MainScene.js";
 
+// gsap.registerPlugin(PixiPlugin);
+// PixiPlugin.registerPIXI(PIXI);
+
 let instance = null; // one instance only
 
 export class App extends EventEmitter {
@@ -27,9 +30,6 @@ export class App extends EventEmitter {
     }
 
     async run() {
-        // gsap.registerPlugin(PixiPlugin);
-        // PixiPlugin.registerPIXI(PIXI);
-
         this.originalRect = {
             h: window.innerHeight,
             w: window.innerWidth,
@@ -85,7 +85,10 @@ export class App extends EventEmitter {
                         this.sceneManager.start(new MainScene());
                         this.sceneManager.scene.on("coin-collected", () => {
                             this.emit("coin-collected");
-                        })
+                        });
+                        this.sceneManager.scene.on("game-over", () => {
+                            this.emit("game-over");
+                        });
                     });
                 });
             }

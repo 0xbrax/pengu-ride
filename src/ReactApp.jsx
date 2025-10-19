@@ -1,16 +1,24 @@
 import { App as PixiApp } from "@/scripts/system/App.js";
-import { useEffect, useRef, useState } from "react";
+import {useCallback, useEffect, useRef, useState} from "react";
 import {$configs} from "@/scripts/system/SETUP.js";
 import Loading from "@/components/Loading.jsx";
 import PointBalance from "@/components/PointBalance.jsx";
+import StartGame from "@/components/StartGame.jsx";
 
 export default function ReactApp() {
   const gameContainer = useRef(null);
   const [gameInstance, setGameInstance] = useState(null);
 
   const [isGameReady, setIsGameReady] = useState(false);
+  const [isGamePlaying, setIsGamePlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [balance, setBalance] = useState(0);
+
+  const startGame = useCallback(() => {
+    setIsGamePlaying(true);
+    setBalance(0);
+    gameInstance.sceneManager.scene.play();
+  }, [gameInstance]);
 
   useEffect(() => {
     if (gameContainer.current && !gameInstance) {
@@ -37,9 +45,15 @@ export default function ReactApp() {
       });
 
       gameInstance.on("coin-collected", () => {
-
-
         setBalance(((prev) => (prev + $configs.SCORE_PER_COIN)));
+      });
+
+      gameInstance.on("game-over", () => {
+        const timeout = setTimeout(() => {
+          setIsGamePlaying(false);
+
+          clearTimeout(timeout);
+        }, 1_000);
       });
     }
   }, [gameInstance]);
@@ -65,6 +79,11 @@ export default function ReactApp() {
       {isGameReady && (
         <PointBalance
           balance={balance}
+        />
+      )}
+      {isGameReady && !isGamePlaying && (
+        <StartGame
+          startGame={startGame}
         />
       )}
     </>

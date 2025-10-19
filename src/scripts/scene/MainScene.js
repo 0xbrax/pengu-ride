@@ -10,7 +10,7 @@ export class MainScene extends EventEmitter {
     constructor() {
         super();
         this.gameInstance = new App();
-
+        this.isPlaying = false;
 
         this.background = new Background();
         this.character = new Character();
@@ -21,7 +21,7 @@ export class MainScene extends EventEmitter {
           ? crypto.getRandomValues(new Uint32Array(1))[0] >>> 0
           : (Date.now() >>> 0);
 
-        console.log("SEED: ", seed, "\n")
+        console.log("SEED: ", seed, "\n \n ----------")
 
         this.coins = new CoinManager(this.gameInstance.app, {
             seed: seed,
@@ -35,15 +35,24 @@ export class MainScene extends EventEmitter {
                 random: 2,
             },
         });
-        this.coins.init();
-
-        this.play();
     }
 
     play() {
-        this.character.jump();
+        this.isPlaying = true;
 
-        this.gameInstance.container.addEventListener('pointerdown', (event) => {
+        this.coins.clear();
+        this.coins.init();
+
+        this.character.play();
+
+        this.enemy.fixedSpeed = false;
+        if (this.enemy.dir === -1) {
+            this.speed = 240;
+        } else {
+            this.speed = 120;
+        }
+
+        this.gameInstance.container.addEventListener('pointerdown', () => {
             this.character.jump();
         });
     }
@@ -60,27 +69,31 @@ export class MainScene extends EventEmitter {
     // }
 
     update(dt) {
+        if (!this.isPlaying) {
+            return;
+        }
+
         this.character.update(dt);
         this.enemy.update(dt);
 
-        if (this.character.spine && this.character.isAlive) {
+        if (this.character.isAlive) {
             this.background.update(dt);
             this.coins.update(dt);
         }
 
-        if (this.character.spine && this.coins._alive) {
-            this.coins._alive.forEach((coin) => {
-                if (testForAABB(this.character.getHitbox(), coin.getBounds())) {
-                    this.emit("coin-collected");
-                    this.coins._despawn(coin);
-                }
-            })
-        }
+        this.coins._alive.forEach((coin) => {
+            if (testForAABB(this.character.getHitbox(), coin.getBounds())) {
+                this.emit("coin-collected");
+                this.coins._despawn(coin);
+            }
+        });
 
-        if (this.character.spine && this.enemy.sprite && this.character.isAlive) {
+        if (this.character.isAlive) {
             if (testForAABB(this.character.getHitbox(), this.enemy.getHitbox())) {
-                this.enemy.playAnim("attack");
+                this.emit("game-over");
+
                 this.enemy.fixedSpeed = true;
+                this.enemy.playAnim("attack");
 
                 this.character.die(this.enemy.dir);
             }

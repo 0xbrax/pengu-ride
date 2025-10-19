@@ -1,4 +1,4 @@
-import {Assets, Graphics} from "pixi.js";
+import {Graphics} from "pixi.js";
 import {Spine} from "@esotericsoftware/spine-pixi-v8";
 import {App} from "@/scripts/system/App.js";
 import {ASSETS_MAP} from "@/scripts/system/ASSETS.js";
@@ -34,7 +34,9 @@ export class Character {
     this.vy = 0; // vertical velocity (px/s)
     this.gravityBase = 1800; // base gravity (px/s^2)
     this.jumpImpulseBase = 1200; // base upward impulse (px/s)
+
     this.dieSpeed = 300;
+    this.lastDieDir = null;
 
     // Effective values (depend on current scale)
     this.gravity = this.gravityBase;
@@ -62,6 +64,7 @@ export class Character {
     };
 
     this.isAlive = true;
+    this.isReborn = false;
 
     this.createSpine();
   }
@@ -81,7 +84,7 @@ export class Character {
     this.baseHeight = this.spine.height;
     this.spine.zIndex = 20;
 
-    this.createDebugBounds();
+    // this.createDebugBounds();
 
     this.resize();
 
@@ -147,12 +150,28 @@ export class Character {
       .fill("#00ff00");
   }
 
-  die(dir){
-    this.dieSpeed *= dir;
-    this.spine.state.addAnimation(0, CHARACTER_ANIMATIONS.DEAD, false, 0.2);
-    this.jump();
+  play() {
+    // triggered for each play, first not included
+    if (!this.isAlive && !this.isReborn) {
+      this.isReborn = true;
+    }
 
-    this.isAlive = false;
+    this.isAlive = true;
+
+    this.spine.state.addAnimation(0, CHARACTER_ANIMATIONS.DRIVING, true);
+    this.jump();
+  }
+
+  die(dir){
+    const timeout = setTimeout(() => {
+      this.lastDieDir = dir;
+      this.spine.state.addAnimation(0, CHARACTER_ANIMATIONS.DEAD, false, 0.2);
+      this.jump();
+
+      this.isAlive = false;
+
+      clearTimeout(timeout);
+    }, 100);
   }
 
   getHitbox() {
@@ -223,17 +242,30 @@ export class Character {
     }
 
     if (!this.isAlive && this.vy !== 0) {
-      this.spine.position.x += this.dieSpeed * this.scale * dt;
+      this.spine.x += this.dieSpeed * this.lastDieDir * this.scale * dt;
+    }
+    if (this.isReborn && this.vy !== 0) {
+      const currentHeight = this.gameInstance.app.screen.height;
+      const scaleRatio = currentHeight / this.baseHeight;
+      const newScale = this.baseScale * scaleRatio * this.scale;
+
+      const targetX = (this.gameInstance.app.screen.width / 2) + (this.baseXOffset * (newScale / this.baseScale));
+
+      const lerpSpeed = 9;
+
+      this.spine.x += (targetX - this.spine.x) * lerpSpeed * dt;
+
+      if (Math.abs(this.spine.x - targetX) < 1) {
+        this.isReborn = false;
+
+        this.spine.x = targetX;
+
+      }
     }
 
     // Handle input (one-shot)
     if (this._wantsFlap) {
       this.vy = -this.jumpImpulse; // instant upward velocity scaled with resize
-      // optional: briefly play jump animation without queuing
-      // try {
-      //   this.spine.state.setAnimation(0, CHARACTER_ANIMATIONS.JUMP, false);
-      //   this.spine.state.addAnimation(0, CHARACTER_ANIMATIONS.DRIVING, true, 0.2);
-      // } catch (_) {}
       this._wantsFlap = false;
     }
 
@@ -255,10 +287,4 @@ export class Character {
 
     this.updateDebugBounds();
   }
-
-  // destroy() {
-  //   if (this._tickerFn) this.gameInstance.app.ticker.remove(this._tickerFn);
-  //   if (this.debugGraphics) this.debugGraphics.destroy();
-  //   if (this.spine) this.spine.destroy();
-  // }
 }

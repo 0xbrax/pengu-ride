@@ -64,9 +64,10 @@ export class Enemy {
 
     this.sprite.zIndex = 30;
 
-    this.createDebugBounds();
-
     this.sprite.x = this.gameInstance.app.screen.width + this.sprite.width;
+
+    // this.createDebugBounds();
+
     this.resize();
 
     this.gameInstance.app.stage.addChild(this.sprite);

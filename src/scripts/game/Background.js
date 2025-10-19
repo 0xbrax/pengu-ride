@@ -1,6 +1,8 @@
-import {Assets, Container, TilingSprite} from "pixi.js";
+import {Assets, Container, Filter, GlProgram, TilingSprite} from "pixi.js";
 import { App } from "@/scripts/system/App";
 import {ASSETS_MAP} from "@/scripts/system/ASSETS.js";
+import frostVertexShader from "@/shaders/frost/vertex.glsl";
+import frostFragmentShader from "@/shaders/frost/fragment.glsl";
 
 const BASE_SPEED = 30;
 const STEP_SPEED = 24;
@@ -16,6 +18,7 @@ export class Background {
             sortableChildren: true,
         });
         this.container.zIndex = 0;
+
         this.createLayers();
     }
 
@@ -25,22 +28,16 @@ export class Background {
         this.layers = this.textures.map((tex, i) => {
             const ts = new TilingSprite({
                 texture: this.textures[i],
-                width: this.gameInstance.app.screen.width,
-                height: this.gameInstance.app.screen.height,
             });
-
-            const scale = this.gameInstance.app.screen.height / tex.height;
-            ts.tileScale.set(scale, scale);
-            ts.width = this.gameInstance.app.screen.width;
-            ts.height = this.gameInstance.app.screen.height;
 
             ts.zIndex = i;
             this.container.addChild(ts);
-            this.gameInstance.app.stage.addChild(this.container);
+
             return ts;
         });
 
         this.speeds = this.layers.map((_, i) => BASE_SPEED + STEP_SPEED * i);
+        this.gameInstance.app.stage.addChild(this.container);
 
         this.resize();
     }

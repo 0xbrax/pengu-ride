@@ -1,7 +1,4 @@
-// CoinManager.js — grid-based (PixiJS v8)
-// 10-row grid tied to screen height. Row 0 (top) and last 2 rows are dead zones (no spawn).
-// Slots are SQUARE (side = rowHeight). Coin fits inside slot with inner padding.
-// Add simple resize(height?) to recompute everything by height.
+// REF ai
 
 import { Container, Sprite, Assets } from "pixi.js";
 import { COIN_SPEED } from "@/scripts/game/Background.js";
