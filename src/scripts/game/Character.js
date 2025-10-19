@@ -2,7 +2,7 @@ import {Assets, Graphics} from "pixi.js";
 import {Spine} from "@esotericsoftware/spine-pixi-v8";
 import {App} from "@/scripts/system/App.js";
 
-export const CHARACTER_ANIMATIONS = {
+const CHARACTER_ANIMATIONS = {
   ARCHERY: "Archery",
   DEAD: "Dead",
   DRIVING: "Driving",
@@ -31,6 +31,7 @@ export class Character {
     this.vy = 0; // vertical velocity (px/s)
     this.gravityBase = 1800; // base gravity (px/s^2)
     this.jumpImpulseBase = 1200; // base upward impulse (px/s)
+    this.dieSpeed = 300;
 
     // Effective values (depend on current scale)
     this.gravity = this.gravityBase;
@@ -40,7 +41,7 @@ export class Character {
     this._scaleMul = 1;
 
     // gaps (scaled on resize): keep a bit of headroom and floor room
-    this.topGapFactor = 0.0;    // % of character height from top
+    this.topGapFactor = 0.10;    // % of character height from top
     this.bottomGapFactor = 0.30; // % of character height from bottom
     this.minY = 0; // computed on resize
     this.maxY = 0; // computed on resize
@@ -147,6 +148,14 @@ export class Character {
       .fill("#00ff00");
   }
 
+  die(dir){
+    this.dieSpeed *= dir;
+    this.spine.state.addAnimation(0, CHARACTER_ANIMATIONS.DEAD, false, 0.2);
+    this.jump();
+
+    this.isAlive = false;
+  }
+
   getHitbox() {
     if (!this.spine) {
       return null;
@@ -212,6 +221,10 @@ export class Character {
   update(dt) {
     if (!this.spine) {
       return;
+    }
+
+    if (!this.isAlive && this.vy !== 0) {
+      this.spine.position.x += this.dieSpeed * this.scale * dt;
     }
 
     // Handle input (one-shot)

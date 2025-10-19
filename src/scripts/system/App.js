@@ -82,7 +82,11 @@ export class App {
     }
 
     start() {
-        $globals.sceneManager.start(new MainScene());
+        // $globals.sceneManager.start(new MainScene());
+        const scene = new LoaderScene();
+
+        $globals.sceneManager.start(scene);
+
         this.resize(this.originalRect);
         window.addEventListener('resize', () => {
             this.resize(this.originalRect);

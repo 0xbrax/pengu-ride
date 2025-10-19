@@ -1,5 +1,6 @@
 import { App as PixiApp } from "@/scripts/system/App.js";
 import { useEffect, useRef, useState } from "react";
+import Loader from "@/components/Loader.jsx";
 
 export default function ReactApp() {
   const gameContainer = useRef(null);
@@ -24,6 +25,7 @@ export default function ReactApp() {
       <div ref={gameContainer} />
 
       {/* React Components */}
+      {/*<Loader />*/}
     </>
   )
 }

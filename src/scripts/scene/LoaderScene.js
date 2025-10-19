@@ -1,109 +1,99 @@
-import { $style } from "../system/SETUP.js";
-import { $globals, isMobile } from "../system/utils.js";
+import { App } from "@/scripts/system/App.js";
+import {Assets, TilingSprite, Filter, GlProgram, BlurFilter} from "pixi.js";
+import frostVertexShader from "@/shaders/frost/vertex.glsl";
+import frostFragmentShader from "@/shaders/frost/fragment.glsl";
+
+const vertex = `
+    in vec2 aPosition;
+
+    void main(void) {
+        gl_Position = vec4(aPosition * 2.0 - 1.0, 0.0, 1.0);
+    }
+`;
+
+const fragment = `
+    void main(void) {
+        gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+    }
+`;
 
 export class LoaderScene {
     constructor() {
-        this.createBackground();
-        this.createText();
+        this.gameInstance = new App();
+        void this.createLoader();
     }
 
-    createBackground() {
-        this.background = document.createElement('div');
-        this.background.style.height = '100%';
-        this.background.style.width = '100%';
-        this.background.style.position = 'absolute';
-        this.background.style.zIndex = '100';
-        this.background.style.top = '0';
-        this.background.style.left = '0';
-        this.background.style.overflow = 'hidden';
-        this.background.style.backgroundColor = $style.black;
+    async createLoader() {
+        const texture = await Assets.load("/4_game_background.png");
+        texture.source.addressMode = "repeat";
 
-        this.background.innerHTML = `
-            <div style="width: 100%; text-align: center; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
-                <img style="width: ${isMobile ? '75%' : '25%'}; margin-bottom: 50px;" src="${$globals.assets.preload['LogoFullImage']}" alt="" />
-            </div>
-        `;
+        this.sprite = new TilingSprite({
+            texture: texture,
+        });
+        this.sprite.anchor.x = 0.5;
+        this.originalHeight = texture.height;
 
-        document.body.appendChild(this.background);
-    }
+        this.updateSpriteSize();
+        this.gameInstance.app.stage.addChild(this.sprite);
 
-    createText() {
-        this.text = document.createElement('div');
-        this.text.style.textAlign = 'center';
 
-        this.content = document.createElement('span');
-        const contentStyle = {
-            display: 'inline-block',
-            fontFamily: 'Rimbo-Regular',
-            fontSize: '50px',
-            color: $style.white,
-            border: `5px solid ${$style.white}`,
-            borderRadius: '10px',
-            width: '250px',
-            height: '100px',
-            textAlign: 'center',
-            lineHeight: '90px' // this is not 100px because font has default margin
-        };
-        Object.assign(this.content.style, contentStyle);
-        this.text.appendChild(this.content);
 
-        this.background.children[0].appendChild(this.text);
-    }
+// Create with custom settings
+//         const blurFilter = new BlurFilter({
+//             strength: 8,      // Overall blur strength
+//             quality: 4,       // Blur quality (higher = better but slower)
+//             kernelSize: 5   ,  // Size of blur kernel matrix
+//             repeatEdgePixels: true, // Enable edge pixel clamping
+//         });
 
-    setText(text) {
-        this.content.innerHTML = text;
+        this.frostFilter = new Filter({
+            glProgram: new GlProgram({ vertex: frostVertexShader, fragment: frostFragmentShader }),
+            resources: {
+                frostUniforms: {
+                    uResolution: { value: [
+                            this.gameInstance.app.screen.width,
+                            this.gameInstance.app.screen.height
+                        ], type: "vec2<f32>" },
+                    uProgress: { value: 0.0, type: "f32" }, // 0.0 ... 1.0
+                },
+            },
+        });
 
-        if (!isNaN(text)) {
-            this.content.style.background = `linear-gradient(0deg, rgba(${$style.mainRGB}, 1) ${text}%, rgba(0, 0, 0, 0) ${text}%)`;
+        this.sprite.filters = [this.frostFilter];
+
+        const totalElements = 18;
+        const delay = 300;
+
+        for (let i = 0; i < totalElements; i++) {
+            setTimeout(() => {
+                const progress = (i + 1) / totalElements; // 0.055, 0.111, 0.166... fino a 1.0
+                this.frostFilter.resources.frostUniforms.uniforms.uProgress = progress;
+                console.log(`Elemento ${i + 1}/${totalElements} - Progress: ${progress.toFixed(3)}`);
+            }, i * delay);
         }
     }
 
-    createDisclaimer() {
-        this.disclaimer = document.createElement('div');
-        this.disclaimer.id = 'disclaimer';
-        const style = {
-            height: '100%',
-            width: '100%',
-            position: 'absolute',
-            zIndex: '101',
-            top: '0',
-            left: '0',
-            padding: isMobile ? '25px' : '100px',
-            textAlign: 'center',
-            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-            color: $style.white,
-        };
+    updateSpriteSize() {
+        if (!this.sprite) {
+            return;
+        }
 
-        const textStyle = {
-            'font-family': 'sans-serif',
-            'font-size': '20px',
-            'line-height': '25px',
-            'text-align': 'justify',
-            'margin-top': '30px',
-            'height': 'calc(100% - 70px - 30px)',
-            'overflow': 'auto',
-            'scroll-behavior': 'smooth',
-        };
-        const textStyleString = Object.entries(textStyle)
-            .map(([key, value]) => `${key}: ${value};`)
-            .join(' ');
-        const disclaimerTextParsed = DISCLAIMER_TEXT.replaceAll(/\n/g, '<br>');
+        this.sprite.x = this.gameInstance.app.screen.width / 2;
 
-        this.disclaimer.innerHTML = `
-            <i-heroicons icon-name="check"></i-heroicons>
-        
-            <div style="${textStyleString}">
-                ${disclaimerTextParsed}
-            </div>
-        `;
+        const scaleY = this.gameInstance.app.screen.height / this.originalHeight;
+        this.sprite.tileScale.set(scaleY);
+        this.sprite.tileScale.y *= -1;
 
-        Object.assign(this.disclaimer.style, style);
-        document.body.appendChild(this.disclaimer);
+        this.sprite.height = this.gameInstance.app.screen.height;
+        this.sprite.width = this.gameInstance.app.screen.width;
 
-        this.disclaimer.addEventListener('click', this.disclaimer.remove);
+        // aggiorna la risoluzione del filtro se presente
+        if (this.frostFilter) {
+            this.frostFilter.resources.frostUniforms.uniforms.uResolution = [this.gameInstance.app.screen.width, this.gameInstance.app.screen.height];
+        }
     }
 
-    remove() {
-        this.background.remove();
+    resize() {
+        this.updateSpriteSize();
     }
 }

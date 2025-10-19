@@ -41,8 +41,8 @@ export class CoinManager {
 
     // Grid config
     this.gridRows       = Math.max(3, Math.floor(opts.gridRows ?? 20));
-    this.deadRowsTop    = Math.max(0, Math.floor(opts.deadRowsTop ?? 2));
-    this.deadRowsBottom = Math.max(0, Math.floor(opts.deadRowsBottom ?? 4));
+    this.deadRowsTop    = Math.max(0, Math.floor(opts.deadRowsTop ?? 3));
+    this.deadRowsBottom = Math.max(0, Math.floor(opts.deadRowsBottom ?? 2));
     this.slotPadding    = Math.max(0, Math.floor(opts.slotPadding ?? 0)); // TODO fix (and resize slot column)
 
     // Patterns

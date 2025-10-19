@@ -11,14 +11,15 @@ export class Enemy {
 
     this.debugGraphics = null;
 
-    this.speed = 120;
+    this.speed = 240;
     this.dir = -1; // 1 = go to the right, -1 = go to the left
     this.padding = 0;
+    this.fixedSpeed = false;
 
     this.hitboxConfig = {
       width: 0.24,
       height: 0.36,
-      offsetX: 0.14 * this.dir,
+      offsetX: -0.14,
       offsetY: 0.09,
     };
 
@@ -58,7 +59,7 @@ export class Enemy {
     this.baseScale = this.sprite.scale.y;
     this.baseHeight = this.sprite.height;
 
-    this.sprite.zIndex = 30
+    this.sprite.zIndex = 30;
 
     this.createDebugBounds();
 
@@ -80,9 +81,11 @@ export class Enemy {
       this.sprite.animationSpeed = 0.45;
       this.sprite.gotoAndPlay(0);
 
+      // Stop for a bit
       this.speed = 0;
 
       this.sprite.onComplete = () => {
+        // Normal speed for both directions
         this.speed = 120;
 
         this.playAnim("walk");
@@ -157,6 +160,7 @@ export class Enemy {
 
     this.sprite.scale.set(newScale);
     this.sprite.scale.x *= this.dir;
+    // this.hitboxConfig.offsetX *= this.dir;
 
     this.sprite.y = this.gameInstance.app.screen.height - (this.baseYOffset * scaleRatio);
 
@@ -182,8 +186,15 @@ export class Enemy {
       this.sprite.x = (appWidth - this.padding) + spriteWidth;
       // inverti direzione e flip X
       this.dir = -1;
-      this.hitboxConfig.offsetX = -this.hitboxConfig.offsetX;
+
+      if (this.fixedSpeed) {
+        this.speed = 120;
+      } else {
+        this.speed = 240;
+      }
+
       this.sprite.scale.x = -Math.abs(this.sprite.scale.x);
+      this.hitboxConfig.offsetX = -this.hitboxConfig.offsetX;
     }
 
     // collisione con bordo sinistro
@@ -192,8 +203,9 @@ export class Enemy {
       this.sprite.x = this.padding - spriteWidth;
       // inverti direzione e flip X
       this.dir = 1;
-      this.hitboxConfig.offsetX = -this.hitboxConfig.offsetX;
+      this.speed = 120;
       this.sprite.scale.x = Math.abs(this.sprite.scale.x);
+      this.hitboxConfig.offsetX = -this.hitboxConfig.offsetX;
     }
 
     this.updateDebugBounds();

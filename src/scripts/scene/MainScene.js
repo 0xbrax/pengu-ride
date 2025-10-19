@@ -4,20 +4,14 @@ import { Background } from "@/scripts/game/Background.js";
 import {testForAABB} from "@/scripts/system/utils.js";
 import {App} from "@/scripts/system/App.js";
 import {CoinManager} from "@/scripts/game/CoinManager.js";
-import {Character, CHARACTER_ANIMATIONS} from "@/scripts/game/Character.js";
-import {Container} from "pixi.js";
+import {Character} from "@/scripts/game/Character.js";
 import {Enemy} from "@/scripts/game/Enemy.js";
 
 export class MainScene {
     constructor() {
         this.gameInstance = new App();
 
-        // this.gameInstance.app.stage.eventMode = 'static';
-        // this.gameInstance.app.stage.hitArea = this.gameInstance.app.screen;
-
-        this.container = new Container();
-        // TODO add everything here (?) not used now
-        this.gameInstance.app.stage.addChild(this.container);
+        // this.gameInstance.app.stage.addChild(this.container);
 
         this.background = new Background();
         this.character = new Character();
@@ -48,6 +42,11 @@ export class MainScene {
     }
 
     play() {
+
+        setTimeout(() => {
+            this.character.jump();
+        }, 500)
+
         this.gameInstance.container.addEventListener('pointerdown', (event) => {
             this.character.jump();
         });
@@ -85,9 +84,9 @@ export class MainScene {
         if (this.character.spine && this.enemy.sprite && this.character.isAlive) {
             if (testForAABB(this.character.getHitbox(), this.enemy.getHitbox())) {
                 this.enemy.playAnim("attack");
-                this.character.spine.state.addAnimation(0, CHARACTER_ANIMATIONS.DEAD, false, 0.2);
+                this.enemy.fixedSpeed = true;
 
-                this.character.isAlive = false;
+                this.character.die(this.enemy.dir);
             }
         }
     }

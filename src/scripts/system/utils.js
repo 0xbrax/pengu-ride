@@ -1,5 +1,3 @@
-import { PROBABILITY_MIN_MULTIPLIER, PROBABILITY_UNIT_DIVISOR } from '@/scripts/system/SETUP.js';
-
 export const $globals = {
     assets: {},
     sceneManager: null,
