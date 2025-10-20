@@ -88,14 +88,14 @@ export class MainScene extends EventEmitter {
             }
         });
 
-        if (this.character.isAlive) {
+        if (this.character.isAlive && !this.enemy.fixedSpeed) {
             if (testForAABB(this.character.getHitbox(), this.enemy.getHitbox())) {
                 this.emit("game-over");
 
+                this.character.die(this.enemy.dir);
+
                 this.enemy.fixedSpeed = true;
                 this.enemy.playAnim("attack");
-
-                this.character.die(this.enemy.dir);
             }
         }
     }

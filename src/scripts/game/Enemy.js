@@ -30,7 +30,7 @@ export class Enemy {
   }
 
   createSprite() {
-    const sheet = Assets.get(this.ASSETS_MAP.enemy[0].alias); // json
+    const sheet = Assets.get(this.ASSETS_MAP.enemy[0].alias); // enemy json
 
     const pad3 = (n) => String(n).padStart(3, "0");
     function makeRangeFrames(prefix, start, end, ext = ".png") {
@@ -68,9 +68,23 @@ export class Enemy {
 
     // this.createDebugBounds();
 
+    this.createSlash(); // this.subSprite
+
     this.resize();
 
     this.gameInstance.app.stage.addChild(this.sprite);
+    this.gameInstance.app.stage.addChild(this.subSprite);
+  }
+
+  createSlash(){
+    const sheet = Assets.get(this.ASSETS_MAP.enemy[2].alias); // slash json
+
+    this.subSprite = new AnimatedSprite(Object.values(sheet.textures));
+    this.subSprite.zIndex = 40;
+
+    this.subSprite.anchor.set(0.5);
+
+    this.subSprite.visible = false;
   }
 
   playAnim(name) {
@@ -88,6 +102,8 @@ export class Enemy {
       // Stop for a bit
       this.speed = 0;
 
+      this.playSlash();
+
       this.sprite.onComplete = () => {
         // Normal speed for both directions
         this.speed = 120;
@@ -95,6 +111,29 @@ export class Enemy {
         this.playAnim("walk");
       }
     }
+  }
+
+  playSlash() {
+    const currentHeight = this.gameInstance.app.screen.height;
+    const scaleRatio = currentHeight / this.baseHeight;
+
+    this.subSprite.visible = true;
+    this.subSprite.y = this.sprite.y + (60 * scaleRatio);
+    
+    if (this.dir === -1) {
+      this.subSprite.x = this.sprite.x + (15 * scaleRatio);
+    } else {
+      this.subSprite.x = this.sprite.x + (-15 * scaleRatio);
+    }
+
+    this.subSprite.scale.x = Math.abs(this.subSprite.scale.x) * this.dir;
+    this.subSprite.animationSpeed = 0.3;
+    this.subSprite.loop = false;
+    this.subSprite.gotoAndPlay(0);
+
+    this.subSprite.onComplete = () => {
+      this.subSprite.visible = false;
+    };
   }
 
   createDebugBounds() {
@@ -154,7 +193,7 @@ export class Enemy {
   }
 
   resize() {
-    if (!this.sprite) {
+    if (!this.sprite || !this.subSprite) {
       return;
     }
 
@@ -164,9 +203,11 @@ export class Enemy {
 
     this.sprite.scale.set(newScale);
     this.sprite.scale.x *= this.dir;
-    // this.hitboxConfig.offsetX *= this.dir;
 
     this.sprite.y = this.gameInstance.app.screen.height - (this.baseYOffset * scaleRatio);
+
+    this.subSprite.scale.set(newScale);
+    this.subSprite.scale.y *= -1;
 
     this.updateDebugBounds();
   }

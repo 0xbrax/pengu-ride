@@ -164,9 +164,9 @@ export class Character {
 
   die(dir){
     const timeout = setTimeout(() => {
+      this.jump();
       this.lastDieDir = dir;
       this.spine.state.addAnimation(0, CHARACTER_ANIMATIONS.DEAD, false, 0.2);
-      this.jump();
 
       this.isAlive = false;
 
