@@ -68,26 +68,25 @@ export class App extends EventEmitter {
 
         this.loader = new Loader();
         this.loader.on("progress", (progress) => {
-            loadingScene.setProgress(progress);
-            this.emit("progress", progress);
             console.log("PROGRESS: ", progress);
+
+            this.emit("progress", progress);
+            loadingScene.setProgress(progress);
 
             // loading complete
             if (progress === 1) {
                 requestAnimationFrame(() => {
-                    this.emit("ready");
                     console.log("READY");
 
+                    this.emit("ready");
                     this.sceneManager.destroy();
 
-                    requestAnimationFrame(() => {
-                        this.sceneManager.start(new MainScene());
-                        this.sceneManager.scene.on("coin-collected", () => {
-                            this.emit("coin-collected");
-                        });
-                        this.sceneManager.scene.on("game-over", () => {
-                            this.emit("game-over");
-                        });
+                    this.sceneManager.start(new MainScene());
+                    this.sceneManager.scene.on("coin-collected", () => {
+                        this.emit("coin-collected");
+                    });
+                    this.sceneManager.scene.on("game-over", () => {
+                        this.emit("game-over");
                     });
                 });
             }

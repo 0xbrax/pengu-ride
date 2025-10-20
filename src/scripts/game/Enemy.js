@@ -36,7 +36,7 @@ export class Enemy {
     function makeRangeFrames(prefix, start, end, ext = ".png") {
       const frames = [];
       for (let i = start; i <= end; i++) {
-        const name = `${prefix}${pad3(i)}${ext}`;      // es. 0_specialty_walk_000.png
+        const name = `${prefix}${pad3(i)}${ext}`; // es. 0_specialty_walk_000.png
         const tex = sheet.textures[name];
         if (!tex) {
           console.warn("Frame mancante:", name);

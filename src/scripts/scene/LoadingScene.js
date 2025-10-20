@@ -6,12 +6,15 @@ import frostFragmentShader from "@/shaders/frost/fragment.glsl";
 export class LoadingScene {
     constructor() {
         this.gameInstance = new App();
+        this.currentProgress = 0.0;
+        this.targetProgress = 0.0;
+        this.animationSpeed = 2.0;
+
         void this.createLoading();
     }
 
     async createLoading() {
         const texture = await Assets.load("/game-background.png");
-        texture.source.addressMode = "repeat";
 
         this.sprite = new TilingSprite({
             texture: texture,
@@ -37,7 +40,7 @@ export class LoadingScene {
                             this.gameInstance.app.screen.width,
                             this.gameInstance.app.screen.height
                         ], type: "vec2<f32>" },
-                    uProgress: { value: 1.0, type: "f32" }, // 0.0 ... 1.0
+                    uProgress: { value: 1.0, type: "f32" }, // 1.0 ... 0.0
                 },
             },
         });
@@ -46,9 +49,25 @@ export class LoadingScene {
     }
 
     setProgress(progress) {
-        const reversedProgress = 1.0 - progress;
+        this.targetProgress = progress;
+    }
 
-        this.frostFilter.resources.frostUniforms.uniforms.uProgress = reversedProgress;
+    update(dt) {
+        if (!this.sprite) {
+            return;
+        }
+
+        if (Math.abs(this.currentProgress - this.targetProgress) > 0.001) {
+            const difference = this.targetProgress - this.currentProgress;
+            const step = difference * this.animationSpeed * dt;
+
+            this.currentProgress += step;
+
+            this.currentProgress = Math.max(0, Math.min(1, this.currentProgress));
+
+            const reversedProgress = 1.0 - this.currentProgress;
+            this.frostFilter.resources.frostUniforms.uniforms.uProgress = reversedProgress;
+        }
     }
 
     updateSpriteSize() {
@@ -60,7 +79,6 @@ export class LoadingScene {
 
         const scaleY = this.gameInstance.app.screen.height / this.originalHeight;
         this.sprite.tileScale.set(scaleY);
-        // this.sprite.tileScale.y *= -1;
 
         this.sprite.height = this.gameInstance.app.screen.height;
         this.sprite.width = this.gameInstance.app.screen.width;
@@ -94,8 +112,6 @@ export class LoadingScene {
             this.sprite = null;
         }
 
-        this.originalHeight = null;
         this.gameInstance = null;
     }
-
 }

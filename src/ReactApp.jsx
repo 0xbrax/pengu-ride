@@ -15,8 +15,8 @@ export default function ReactApp() {
   const [balance, setBalance] = useState(0);
 
   const startGame = useCallback(() => {
-    setIsGamePlaying(true);
     setBalance(0);
+    setIsGamePlaying(true);
     gameInstance.sceneManager.scene.play();
   }, [gameInstance]);
 

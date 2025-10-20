@@ -34,7 +34,7 @@ export class CoinManager {
 
     // Config (constructor-only)
     this.speed     = opts.speed ?? (COIN_SPEED ?? 60);
-    this.poolSize  = opts.pool ?? 128; // 256
+    this.poolSize  = opts.pool ?? 64; // 256
 
     // Grid config
     this.gridRows       = Math.max(3, Math.floor(opts.gridRows ?? 20));
