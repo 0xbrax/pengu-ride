@@ -5,6 +5,7 @@ import {CoinManager} from "@/scripts/game/CoinManager.js";
 import {Character} from "@/scripts/game/Character.js";
 import {Enemy} from "@/scripts/game/Enemy.js";
 import {testForAABB} from "@/scripts/system/utils.js";
+import {ObstacleManager} from "@/scripts/game/ObstacleManager.js";
 
 export class MainScene extends EventEmitter {
     constructor() {
@@ -15,7 +16,6 @@ export class MainScene extends EventEmitter {
         this.background = new Background();
         this.character = new Character();
         this.enemy = new Enemy();
-
 
         const seed = (crypto?.getRandomValues)
           ? crypto.getRandomValues(new Uint32Array(1))[0] >>> 0
@@ -35,6 +35,8 @@ export class MainScene extends EventEmitter {
                 random: 2,
             },
         });
+
+        this.obstacles = new ObstacleManager();
     }
 
     play() {
@@ -62,11 +64,8 @@ export class MainScene extends EventEmitter {
         this.character.resize();
         this.enemy.resize();
         this.coins.resize();
+        this.obstacles.resize();
     }
-
-    // destroy() {
-    //     // TODO
-    // }
 
     update(dt) {
         if (!this.isPlaying) {
@@ -79,6 +78,7 @@ export class MainScene extends EventEmitter {
         if (this.character.isAlive) {
             this.background.update(dt);
             this.coins.update(dt);
+            this.obstacles.update(dt);
         }
 
         this.coins._alive.forEach((coin) => {
@@ -88,15 +88,25 @@ export class MainScene extends EventEmitter {
             }
         });
 
-        if (this.character.isAlive && !this.enemy.fixedSpeed) {
-            if (testForAABB(this.character.getHitbox(), this.enemy.getHitbox())) {
-                this.emit("game-over");
+        // if (this.character.isAlive && !this.enemy.fixedSpeed) {
+        //     if (testForAABB(this.character.getHitbox(), this.enemy.getHitbox())) {
+        //         this.emit("game-over");
+        //
+        //         this.character.die(this.enemy.dir);
+        //
+        //         this.enemy.fixedSpeed = true;
+        //         this.enemy.playAnim("attack");
+        //     }
+        // }
 
-                this.character.die(this.enemy.dir);
-
-                this.enemy.fixedSpeed = true;
-                this.enemy.playAnim("attack");
+        this.obstacles.activeObstacles.forEach((obstacle) => {
+            if (testForAABB(this.character.getHitbox(), this.obstacles.getHitbox(obstacle))) {
+                console.log("HIT");
             }
-        }
+        });
     }
+
+    // destroy() {
+    //     // TODO
+    // }
 }

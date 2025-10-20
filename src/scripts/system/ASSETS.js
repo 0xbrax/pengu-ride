@@ -1,31 +1,31 @@
 export const ASSETS_MAP = {
     background: [
         {
-            alias: "1",
+            alias: "background-1",
             src: "/background/1.png",
         },
         {
-            alias: "2",
+            alias: "background-2",
             src: "/background/2.png",
         },
         {
-            alias: "3",
+            alias: "background-3",
             src: "/background/3.png",
         },
         {
-            alias: "4",
+            alias: "background-4",
             src: "/background/4.png",
         },
         {
-            alias: "5",
+            alias: "background-5",
             src: "/background/5.png",
         },
         {
-            alias: "6",
+            alias: "background-6",
             src: "/background/6.png",
         },
         {
-            alias: "7",
+            alias: "background-7",
             src: "/background/7.png",
         }
     ],
@@ -65,6 +65,10 @@ export const ASSETS_MAP = {
         {
             alias: "coin",
             src: "/texture/coin_01.png"
+        },
+        {
+            alias: "icicle",
+            src: "/texture/icicle.png"
         },
         // {
         //     alias: "diamond",

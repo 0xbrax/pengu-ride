@@ -38,7 +38,7 @@ export class CoinManager {
 
     // Grid config
     this.gridRows       = Math.max(3, Math.floor(opts.gridRows ?? 20));
-    this.deadRowsTop    = Math.max(0, Math.floor(opts.deadRowsTop ?? 3));
+    this.deadRowsTop    = Math.max(0, Math.floor(opts.deadRowsTop ?? 4));
     this.deadRowsBottom = Math.max(0, Math.floor(opts.deadRowsBottom ?? 2));
     this.slotPadding    = Math.max(0, Math.floor(opts.slotPadding ?? 0)); // TODO fix (and resize slot column)
 
@@ -71,8 +71,8 @@ export class CoinManager {
     this._spawnRightOffset = 30;
 
     // gaps
-    this.gapMinSlots = 5;
-    this.gapMaxSlots = 15;
+    this.gapMinSlots = 4;
+    this.gapMaxSlots = 16;
     this.gapChance   = 0.3;
     this._gapSlotsLeft = 0;
 
