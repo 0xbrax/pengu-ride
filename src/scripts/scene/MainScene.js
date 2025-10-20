@@ -109,8 +109,6 @@ export class MainScene extends EventEmitter {
         if (this.character.isAlive) {
             this.obstacles.activeObstacles.forEach((obstacle) => {
                 if (testForAABB(this.character.getHitbox(), this.obstacles.getHitbox(obstacle))) {
-                    console.log("HIT");
-
                     this.emit("game-over");
 
                     this.character.die("obstacle");

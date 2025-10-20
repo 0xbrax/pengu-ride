@@ -4,6 +4,7 @@ import {$configs} from "@/scripts/system/SETUP.js";
 import Loading from "@/components/Loading.jsx";
 import PointBalance from "@/components/PointBalance.jsx";
 import StartGame from "@/components/StartGame.jsx";
+import {useScoreStore} from "@/store/useScoreStore.js";
 
 export default function ReactApp() {
   const gameContainer = useRef(null);
@@ -14,11 +15,15 @@ export default function ReactApp() {
   const [progress, setProgress] = useState(0);
   const [balance, setBalance] = useState(0);
 
+  const updateBest = useScoreStore((s) => s.updateBest);
+
   const startGame = useCallback(() => {
+    updateBest(balance);
+
     setBalance(0);
     setIsGamePlaying(true);
     gameInstance.sceneManager.scene.play();
-  }, [gameInstance]);
+  }, [gameInstance, balance, updateBest]);
 
   useEffect(() => {
     if (gameContainer.current && !gameInstance) {
