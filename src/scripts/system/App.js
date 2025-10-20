@@ -1,14 +1,8 @@
 import {Application, EventEmitter} from "pixi.js";
-
-// import { gsap } from "gsap";
-// import { PixiPlugin } from "gsap/PixiPlugin";
 import { Loader } from "@/scripts/system/Loader.js";
 import { SceneManager } from "@/scripts/scene/SceneManager.js";
 import { LoadingScene } from "@/scripts/scene/LoadingScene.js";
 import { MainScene } from "@/scripts/scene/MainScene.js";
-
-// gsap.registerPlugin(PixiPlugin);
-// PixiPlugin.registerPIXI(PIXI);
 
 let instance = null; // one instance only
 

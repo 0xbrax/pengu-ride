@@ -8,6 +8,11 @@ import ReactApp from '@/ReactApp.jsx';
 import { $globals } from "@/scripts/system/SETUP.js";
 import { exitFullscreen } from "@/scripts/system/utils.js";
 import { Howler } from "howler";
+import { gsap } from "gsap";
+import { PixiPlugin } from "gsap/PixiPlugin";
+import { useGSAP } from "@gsap/react";
+
+gsap.registerPlugin(PixiPlugin, useGSAP);
 
 
 

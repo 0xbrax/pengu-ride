@@ -62,7 +62,7 @@ export class Enemy {
     this.baseScale = this.sprite.scale.y;
     this.baseHeight = this.sprite.height;
 
-    this.sprite.zIndex = 30;
+    this.sprite.zIndex = 40;
 
     this.sprite.x = this.gameInstance.app.screen.width + this.sprite.width;
 
@@ -80,7 +80,7 @@ export class Enemy {
     const sheet = Assets.get(this.ASSETS_MAP.enemy[2].alias); // slash json
 
     this.subSprite = new AnimatedSprite(Object.values(sheet.textures));
-    this.subSprite.zIndex = 40;
+    this.subSprite.zIndex = 50;
 
     this.subSprite.anchor.set(0.5);
 
@@ -138,7 +138,7 @@ export class Enemy {
 
   createDebugBounds() {
     this.debugGraphics = new Graphics();
-    this.debugGraphics.zIndex = 100;
+    this.debugGraphics.zIndex = 1200;
     this.gameInstance.app.stage.addChild(this.debugGraphics);
   }
 

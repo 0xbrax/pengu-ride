@@ -45,6 +45,12 @@ export class MainScene extends EventEmitter {
         this.coins.clear();
         this.coins.init();
 
+        this.obstacles.resetLevel();
+
+        // this.obstacles.destroy();
+        // this.obstacles.initializePool();
+        // this.obstacles.generateInitialObstacles();
+
         this.character.play();
 
         this.enemy.fixedSpeed = false;
@@ -81,29 +87,38 @@ export class MainScene extends EventEmitter {
             this.obstacles.update(dt);
         }
 
-        this.coins._alive.forEach((coin) => {
-            if (testForAABB(this.character.getHitbox(), coin.getBounds())) {
-                this.emit("coin-collected");
-                this.coins._despawn(coin);
-            }
-        });
+        if (this.character.isAlive) {
+            this.coins._alive.forEach((coin) => {
+                if (testForAABB(this.character.getHitbox(), coin.getBounds())) {
+                    this.emit("coin-collected");
+                    this.coins._despawn(coin);
+                }
+            });
+        }
 
-        // if (this.character.isAlive && !this.enemy.fixedSpeed) {
-        //     if (testForAABB(this.character.getHitbox(), this.enemy.getHitbox())) {
-        //         this.emit("game-over");
-        //
-        //         this.character.die(this.enemy.dir);
-        //
-        //         this.enemy.fixedSpeed = true;
-        //         this.enemy.playAnim("attack");
-        //     }
-        // }
+        if (this.character.isAlive && !this.enemy.fixedSpeed) {
+            if (testForAABB(this.character.getHitbox(), this.enemy.getHitbox())) {
+                this.emit("game-over");
 
-        this.obstacles.activeObstacles.forEach((obstacle) => {
-            if (testForAABB(this.character.getHitbox(), this.obstacles.getHitbox(obstacle))) {
-                console.log("HIT");
+                this.character.die("enemy", this.enemy.dir);
+                this.enemy.fixedSpeed = true;
+                this.enemy.playAnim("attack");
             }
-        });
+        }
+
+        if (this.character.isAlive) {
+            this.obstacles.activeObstacles.forEach((obstacle) => {
+                if (testForAABB(this.character.getHitbox(), this.obstacles.getHitbox(obstacle))) {
+                    console.log("HIT");
+
+                    this.emit("game-over");
+
+                    this.character.die("obstacle");
+                    this.enemy.fixedSpeed = true;
+                    this.obstacles.animateObstacleHit(obstacle);
+                }
+            });
+        }
     }
 
     // destroy() {

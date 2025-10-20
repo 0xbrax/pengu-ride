@@ -65,6 +65,7 @@ export class Character {
 
     this.isAlive = true;
     this.isReborn = false;
+    this.isFalling = false;
 
     this.createSpine();
   }
@@ -82,7 +83,7 @@ export class Character {
 
     this.baseScale = this.spine.scale.x;
     this.baseHeight = this.spine.height;
-    this.spine.zIndex = 20;
+    this.spine.zIndex = 30;
 
     // this.createDebugBounds();
 
@@ -119,7 +120,7 @@ export class Character {
 
   createDebugBounds() {
     this.debugGraphics = new Graphics();
-    this.debugGraphics.zIndex = 100;
+    this.debugGraphics.zIndex = 1100;
     this.gameInstance.app.stage.addChild(this.debugGraphics);
   }
 
@@ -157,21 +158,32 @@ export class Character {
     }
 
     this.isAlive = true;
+    this.isFalling = false;
 
     this.spine.state.addAnimation(0, CHARACTER_ANIMATIONS.DRIVING, true);
     this.jump();
   }
 
-  die(dir){
-    const timeout = setTimeout(() => {
+  die(mode, dir){
+    if (mode === "enemy") {
+      const timeout = setTimeout(() => {
+        this.lastDieDir = dir;
+        this.jump();
+        this.spine.state.addAnimation(0, CHARACTER_ANIMATIONS.DEAD, false, 0.2);
+
+        this.isAlive = false;
+
+        clearTimeout(timeout);
+      }, 100);
+    }
+    if (mode === "obstacle") {
+      this.lastDieDir = 1;
       this.jump();
-      this.lastDieDir = dir;
-      this.spine.state.addAnimation(0, CHARACTER_ANIMATIONS.DEAD, false, 0.2);
+      this.spine.state.addAnimation(0, CHARACTER_ANIMATIONS.PARACHUTE, false, 0.2);
 
+      this.isFalling = true;
       this.isAlive = false;
-
-      clearTimeout(timeout);
-    }, 100);
+    }
   }
 
   getHitbox() {
@@ -259,7 +271,6 @@ export class Character {
         this.isReborn = false;
 
         this.spine.x = targetX;
-
       }
     }
 
@@ -280,6 +291,13 @@ export class Character {
       this.spine.y = this.maxY;
       this.vy = 0; // stop falling at the floor
     }
+
+    if (this.vy === 0 && !this.isAlive && this.isFalling) {
+      this.isFalling = false;
+      this.spine.state.addAnimation(0, CHARACTER_ANIMATIONS.IDLE, false, 0.2);
+    }
+
+    // Clamp to bounds
     if (this.spine.y < this.minY) {
       this.spine.y = this.minY;
       if (this.vy < 0) this.vy = 0; // stop rising at the ceiling
