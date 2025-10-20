@@ -14,13 +14,13 @@ export class ObstacleManager {
     this.asset = Assets.get(ASSETS_MAP.texture[1].alias);
 
     // Pool
-    this.maxObstacles = 6;
+    this.maxObstacles = 4;
     this.obstaclePool = [];
     this.activeObstacles = [];
 
     // Percentuali schermo
-    this.yPercent = -0.13;
-    this.xSpacingPercent = 0.05;
+    this.yPercent = -0.10;
+    this.xSpacingPercent = 0.15;
 
     // Stato generazione
     this.lastObstacleX = 0;
@@ -28,7 +28,7 @@ export class ObstacleManager {
     // Scala sprite
     this.baseScale = 1;
     this.baseHeight = null;
-    this.scaleVariations = [0.4, 0.7, 0.9, 1.0];
+    this.scaleVariations = [0.3, 0.4, 0.5];
 
     // Velocità
     this.speed = COIN_SPEED;
