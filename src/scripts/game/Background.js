@@ -1,8 +1,6 @@
-import {Assets, Container, Filter, GlProgram, TilingSprite} from "pixi.js";
+import {Assets, Container, TilingSprite} from "pixi.js";
 import { App } from "@/scripts/system/App";
 import {ASSETS_MAP} from "@/scripts/system/ASSETS.js";
-import frostVertexShader from "@/shaders/frost/vertex.glsl";
-import frostFragmentShader from "@/shaders/frost/fragment.glsl";
 
 const BASE_SPEED = 30;
 const STEP_SPEED = 24;

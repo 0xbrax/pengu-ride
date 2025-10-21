@@ -71,8 +71,8 @@ export class CoinManager {
     this._spawnRightOffset = 30;
 
     // gaps
-    this.gapMinSlots = 4;
-    this.gapMaxSlots = 16;
+    this.gapMinSlots = 2;
+    this.gapMaxSlots = 8;
     this.gapChance   = 0.3;
     this._gapSlotsLeft = 0;
 
