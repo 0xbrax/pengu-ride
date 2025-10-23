@@ -84,7 +84,7 @@ export class MainScene extends EventEmitter {
     }
 
     checkLevelProgression() {
-        if (this.scoreBalance >= this.nextLevelThreshold && this.currentLevel < 15) {
+        if (this.scoreBalance >= this.nextLevelThreshold && this.currentLevel < 10) {
             this.levelUp();
         }
     }
@@ -94,7 +94,7 @@ export class MainScene extends EventEmitter {
         this.nextLevelThreshold += 2500; // Prossima soglia è sempre +2500 punti
 
         // Fattore di moltiplicazione per la velocità (aumenta del 20% per ogni livello)
-        const speedMultiplier = 1 + (this.currentLevel * 0.2); // 0.2
+        const speedMultiplier = 1 + (this.currentLevel * 0.1); // 0.2
 
         // Aumenta la velocità del background (tutti i 7 layers del parallax)
         this.background.speeds = this.background.speeds.map(speed =>
