@@ -41,16 +41,10 @@ export class MainScene extends EventEmitter {
         this.coins.speed = this.initialSpeed.coins;
         this.obstacles.speed = this.initialSpeed.obstacles;
 
-        console.log("INIT SPEED", this.coins.speed)
-
         this.isPlaying = true;
 
         this.coins.clearAllSprites();
-
         this.obstacles.resetLevel();
-
-        this.character.play();
-
         this.enemy.fixedSpeed = false;
         if (this.enemy.dir === -1) {
             this.speed = 240;
@@ -58,9 +52,11 @@ export class MainScene extends EventEmitter {
             this.speed = 120;
         }
 
+        this.character.play();
+
         this.gameInstance.container.addEventListener('pointerdown', () => {
-            this.character.jump();
-        });
+              this.character.jump();
+          });
     }
 
     levelUp() {
