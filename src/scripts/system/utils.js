@@ -1,5 +1,9 @@
 import {$globals} from "@/scripts/system/SETUP.js";
 
+export const getRandomInt = (min, max) => {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+};
+
 // Collision detection
 export const testForAABB = (objectBounds1, objectBounds2) => {
     return (
@@ -10,10 +14,7 @@ export const testForAABB = (objectBounds1, objectBounds2) => {
     );
 };
 
-/*
-* Misc
-* */
-
+// Misc
 export const enterFullscreen = () => {
     if (document.documentElement.requestFullscreen) {
         document.documentElement.requestFullscreen();

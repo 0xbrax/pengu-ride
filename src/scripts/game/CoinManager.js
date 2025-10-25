@@ -1,430 +1,462 @@
-// REF ai
-
-import { Container, Sprite, Assets } from "pixi.js";
-import { COIN_SPEED } from "@/scripts/game/Background.js";
+import {Container, Sprite, Assets, Texture} from "pixi.js";
+import {COIN_SPEED} from "@/scripts/game/Background.js";
 import {ASSETS_MAP} from "@/scripts/system/ASSETS.js";
+import {App} from "@/scripts/system/App.js";
+import {getRandomInt} from "@/scripts/system/utils.js";
 
 export class CoinManager {
-  /**
-   * @param {import("pixi.js").Application} app
-   * @param {object} [opts]
-   * @param {number}  [opts.speed=COIN_SPEED||60]      Horizontal speed (px/s, moving left)
-   * @param {number}  [opts.pool=256]                 Initial pool size
-   * @param {number}  [opts.gridRows=10]              Total grid rows (height split). Default 10.
-   * @param {number}  [opts.deadRowsTop=1]            Non-spawn rows at top (padding). Default 1.
-   * @param {number}  [opts.deadRowsBottom=2]         Non-spawn rows at bottom (padding). Default 2.
-   * @param {number}  [opts.slotPadding=4]            Inner padding inside a square slot for the coin (px).
-   * @param {"random"|"line"|"diagonalUp"|"diagonalDown"|"peak"|"V"|"block"|"any"} [opts.pattern="any"]
-   * @param {object}  [opts.shapes]                   Per-pattern options (columns/rows counts)
-   * @param {number}  [opts.seed]                     Seed for deterministic RNG
-   * @param {Record<string, number>} [opts.patternWeights] Weights for "any" pattern selection
-   */
-  constructor(app, opts = {}) {
-    this.app = app;
+  constructor() {
+    this.gameInstance = new App();
     this.ASSETS_MAP = ASSETS_MAP;
 
-    // Scene graph
     this.container = new Container();
     this.container.zIndex = 10;
-    this.app.stage.addChild(this.container);
+    this.gameInstance.app.stage.addChild(this.container);
 
-    // State
-    this.ready = false;
-    this.paused = false;
+    this.speed = COIN_SPEED;
 
-    // Config (constructor-only)
-    this.speed     = opts.speed ?? (COIN_SPEED ?? 60);
-    this.poolSize  = opts.pool ?? 64; // 256
+    this.spritesPool = [];
+    this.texture = new Texture(Assets.get(this.ASSETS_MAP.texture[0].alias)); // coin
 
-    // Grid config
-    this.gridRows       = Math.max(3, Math.floor(opts.gridRows ?? 20));
-    this.deadRowsTop    = Math.max(0, Math.floor(opts.deadRowsTop ?? 4));
-    this.deadRowsBottom = Math.max(0, Math.floor(opts.deadRowsBottom ?? 2));
-    this.slotPadding    = Math.max(0, Math.floor(opts.slotPadding ?? 0)); // TODO fix (and resize slot column)
+    this.configs = {
+      spriteScale: 0.8, // Not implemented yet
+      totalRows: 20,
+      deadRowsTop: 4,
+      deadRowsBottom: 2,
+      minCols: 3,
+      maxCols: 15,
+      minGap: 2,
+      maxGap: 10,
+    };
 
-    // Patterns
-    this.pattern = opts.pattern ?? "any";
-    const s = opts.shapes ?? {};
-    this.shapeRandom   = { minCols: s?.random?.minCols ?? 6,  maxCols: s?.random?.maxCols ?? 14, thickness: s?.random?.thickness ?? 1 };
-    this.shapeLine     = { minCols: s?.line?.minCols ?? 14,   maxCols: s?.line?.maxCols ?? 28,   thickness: s?.line?.thickness ?? 1 };
-    this.shapeDiagonal = { minCols: s?.diagonal?.minCols ?? 16,maxCols: s?.diagonal?.maxCols ?? 32,thickness: s?.diagonal?.thickness ?? 1 };
-    this.shapePeak     = { minCols: s?.peak?.minCols ?? 20,   maxCols: s?.peak?.maxCols ?? 40,   thickness: s?.peak?.thickness ?? 1 };
-    this.shapeV        = { minCols: s?.V?.minCols ?? 20,      maxCols: s?.V?.maxCols ?? 40,      thickness: s?.V?.thickness ?? 1 };
-    this.shapeBlock    = { minCols: s?.block?.minCols ?? 6,   maxCols: s?.block?.maxCols ?? 12,  minRows: s?.block?.minRows ?? 3, maxRows: s?.block?.maxRows ?? 5 };
+    // Weight sum must be 100
+    this.patternsByWeight = {
+      "line": 15,
+      "diagonalUp": 5,
+      "diagonalDown": 5,
+      "peak": 25,
+      "V": 25,
+      "block": 20,
+      "random": 5,
+    };
 
-    // RNG
-    this._seed = (typeof opts.seed === "number") ? (opts.seed >>> 0) : null;
-    this._rngState = this._seed != null ? this._seed : (Math.random() * 0xFFFFFFFF) >>> 0;
-    this._patternWeights = this._buildPatternWeights(opts.patternWeights);
+    const slotSize = this.gameInstance.app.screen.height / this.configs.totalRows;
+    this.gridSizes = {
+      height: slotSize,
+      width: slotSize, // Not used because it is a square
+    };
 
-    // Resources & pooling
-    this._texture = null;
-    this._pool = [];
-    this._alive = new Set();
+    this.triggerDistance = 1;
+    const screenWidthInSlots = Math.ceil(this.gameInstance.app.screen.width / slotSize);
+    this.lastGridSlotXAvailable = screenWidthInSlots + this.triggerDistance;
 
-    // Runtime & derived metrics
-    this._distanceAccumulator = 0;
-    this._slotWidthPx = 32; // updated in _recomputeGrid()
-    this._slotSide = 32;    // square slot side
-    this._rowCenters = [];  // y centers per row index
-    this._usableRowIds = []; // indices allowed to spawn
-    this._spawnRightOffset = 30;
+    setInterval(() => {
+      console.log("COINS POOL LENGTH: ", this.spritesPool.length);
 
-    // gaps
-    this.gapMinSlots = 2;
-    this.gapMaxSlots = 8;
-    this.gapChance   = 0.3;
-    this._gapSlotsLeft = 0;
-
-    // pattern queue (per column: one row index or array of row indices)
-    this._patternQueue = [];
-
-    // texture logical metrics (for scaling)
-    this._logicalW = 0;
-    this._logicalH = 0;
+    }, 10_000);
   }
 
-  // ---------- Init ----------
-  init() {
-    this._texture = Assets.get(this.ASSETS_MAP.texture[0].alias); // coin
-    this._measureTextureLogicalSize();
-    this._recomputeGrid();
+  createSprites() {
+    const pattern = this.getWeightedRandomPattern();
 
-    for (let i = 0; i < this.poolSize; i++) {
-      const sprite = new Sprite(this._texture);
-      sprite.anchor.set(0.5);
-      sprite.visible = false;
-      sprite.renderable = false;
-      sprite.__vx = 0;
-      sprite.__vy = 0;
-      this._pool.push(sprite);
-      this.container.addChild(sprite);
+    switch (pattern) {
+      case "line":
+        this.genLineBurst();
+        break;
+      case "diagonalUp":
+        this.genDiagonalUpBurst();
+        break;
+      case "diagonalDown":
+        this.genDiagonalDownBurst();
+        break;
+      case "peak":
+        this.genPeakBurst();
+        break;
+      case "V":
+        this.genVBurst();
+        break;
+      case "block":
+        this.genBlockBurst();
+        break;
+      case "random":
+      default:
+        this.genRandomBurst();
+        break;
+    }
+  }
+
+  // Could be improved with a seed number to generate the same pattern
+  getWeightedRandomPattern(rngFunction = Math.random) {
+    const totalWeight = Object.values(this.patternsByWeight).reduce((sum, patternWeight) => sum + patternWeight, 0);
+    const keys = Object.keys(this.patternsByWeight);
+
+    if (totalWeight !== 100 || totalWeight <= 0) {
+      console.warn("Pattern weights do not sum to 100, this may cause unexpected behavior.");
+      const randomIndex = Math.floor(rngFunction() * keys.length);
+      return keys[randomIndex];
     }
 
-    // Apply initial scale to all sprites
-    this._applyScaleToAllSprites();
+    const randomValue = rngFunction() * totalWeight;
+    let currentWeight = 0;
 
-    this.ready = true;
+    for (const key of keys) {
+      const patternWeight = this.patternsByWeight[key];
+      currentWeight += patternWeight;
+      if (randomValue <= currentWeight) {
+        return key;
+      }
+    }
+
+    // Fallback
+    console.warn("No pattern found with the specified weight, returning a random pattern.");
+    const randomIndex = Math.floor(rngFunction() * keys.length);
+    return keys[randomIndex];
   }
+  
+  updateRandomGap(colNumber) {
+    const randomGap = getRandomInt(this.configs.minGap, this.configs.maxGap);
 
-  // ---------- Controls ----------
-  pause()  { this.paused = true; }
-  resume() { this.paused = false; }
-  toggle() { this.paused = !this.paused; }
-
-  clear() {
-    for (const s of this._alive) this._despawn(s);
-    this._alive.clear();
-    this._distanceAccumulator = 0;
-    this._gapSlotsLeft = 0;
-    this._patternQueue.length = 0;
+    this.lastGridSlotXAvailable += colNumber + 1 + randomGap;
   }
 
   /**
-   * Resize coins/grid using current app.screen.height or an explicit height.
-   * @param {number} [height] - if provided, use this height instead of app.screen.height
+   * MISC
    */
-  resize(height) {
-    if (!this.ready) return;
-
-    // Capture old metrics to remap
-    const oldSlot = this._slotWidthPx;
-    const oldCenters = this._rowCenters.slice();
-
-    // Recompute grid and scales
-    this._recomputeGrid(height);
-    this._applyScaleToAllSprites();
-
-    // Remap alive sprites to nearest new row center keeping their row index
-    const pickNearestIndex = (y, centers) => {
-      let best = 0, bestD = Infinity;
-      for (let i = 0; i < centers.length; i++) {
-        const d = Math.abs(y - centers[i]);
-        if (d < bestD) { bestD = d; best = i; }
-      }
-      return best;
-    };
-
-    const clampUsable = (ri) => {
-      if (this._usableRowIds.includes(ri)) return ri;
-      // snap to nearest usable row
-      if (!this._usableRowIds.length) return Math.min(this.gridRows - 1, Math.max(0, ri));
-      let best = this._usableRowIds[0], bestD = Math.abs(ri - best);
-      for (const u of this._usableRowIds) {
-        const d = Math.abs(ri - u);
-        if (d < bestD) { bestD = d; best = u; }
-      }
-      return best;
-    };
-
-    for (const s of this._alive) {
-      const oldIdx = pickNearestIndex(s.y, oldCenters);
-      const newIdx = clampUsable(oldIdx);
-      s.y = this._rowCenters[newIdx] ?? s.y;
+  resize() {
+    if (!this.texture) {
+      return;
     }
 
-    // Remap queued rows to usable grid
-    this._patternQueue = this._patternQueue.map(col => {
-      if (Array.isArray(col)) return col.map(clampUsable);
-      return clampUsable(col);
+    const oldSlotSize = this.gridSizes.height;
+    const newSlotSize = this.gameInstance.app.screen.height / this.configs.totalRows;
+
+    this.gridSizes.height = newSlotSize;
+    this.gridSizes.width = newSlotSize;
+
+    // Resize and snap to grid
+    this.spritesPool.forEach((sprite, i) => {
+      sprite.height = newSlotSize;
+      sprite.width = newSlotSize;
+
+      const currentGridX = Math.round((sprite.position.x - sprite.width / 2) / oldSlotSize);
+      const currentGridY = Math.round((sprite.position.y - sprite.height / 2) / oldSlotSize);
+
+      sprite.position.x = sprite.width / 2 + (currentGridX * newSlotSize);
+      sprite.position.y = sprite.height / 2 + (currentGridY * newSlotSize);
+    })
+  }
+
+  update(dt) {
+    if (!this.texture) {
+      return;
+    }
+
+    // Animate
+    this.container.position.x -= this.speed * dt;
+
+    // Initiate
+    if (this.spritesPool.length === 0) {
+      this.createSprites();
+    }
+
+    // Generate
+    const slotSize = this.gridSizes.height;
+
+    const containerXInSlots = Math.abs(Math.floor(this.container.position.x / slotSize));
+    const screenWidthInSlots = Math.ceil(this.gameInstance.app.screen.width / slotSize);
+    const nextGenerationPosition = this.lastGridSlotXAvailable - screenWidthInSlots - this.triggerDistance;
+
+    if (containerXInSlots >= nextGenerationPosition) {
+      this.createSprites();
+    }
+
+    // Clear
+    const leftBoundary = slotSize * -this.triggerDistance;
+
+    for (const sprite of this.spritesPool) {
+      const spriteWorldX = sprite.position.x + this.container.position.x;
+      if (spriteWorldX < leftBoundary) {
+        this.clearSprite(sprite);
+      }
+    }
+  }
+
+  clearSprite(sprite) {
+    const index = this.spritesPool.indexOf(sprite);
+    if (index === -1) {
+      console.error("Sprite not found in aliveSprites array, cannot clear.");
+      return;
+    }
+
+    this.spritesPool.splice(index, 1);
+    this.container.removeChild(sprite);
+    sprite.destroy();
+  }
+
+  clearAllSprites() {
+    this.spritesPool.forEach((sprite) => {
+      this.clearSprite(sprite);
     });
 
-    // Preserve slot cadence phase
-    if (oldSlot > 0 && this._slotWidthPx > 0) {
-      const frac = this._distanceAccumulator / oldSlot;
-      this._distanceAccumulator = frac * this._slotWidthPx;
-    }
+    const slotSize = this.gameInstance.app.screen.height / this.configs.totalRows;
+
+    const screenWidthInSlots = Math.ceil(this.gameInstance.app.screen.width / slotSize);
+    this.lastGridSlotXAvailable = screenWidthInSlots + this.triggerDistance;
   }
 
-  // ---------- Update (dt in seconds) ----------
-  update(dt) {
-    if (!this.ready || this.paused) return;
+  destroy() {
+    this.clearAllSprites();
 
-    // Move & cull
-    for (const s of Array.from(this._alive)) {
-      s.x += s.__vx * dt;
-      if (s.x < -50) this._despawn(s);
-    }
+    this.texture.destroy();
+    this.texture = null;
 
-    // Spawn by slots
-    this._distanceAccumulator += this.speed * dt;
+    this.gameInstance.app.stage.removeChild(this.container);
+    this.container.destroy();
+    this.container = null;
+  }
 
-    while (this._distanceAccumulator >= this._slotWidthPx) {
-      this._distanceAccumulator -= this._slotWidthPx;
+  // TODO check min and max row
+  /**
+   * GENERATION PATTERNS
+   */
+  genLineBurst() {
+    const maxLength = getRandomInt(this.configs.minCols, this.configs.maxCols);
+    const minRow = this.configs.deadRowsTop;
+    const maxRow = this.configs.totalRows - this.configs.deadRowsBottom - 1;
+    const randomRow = getRandomInt(minRow, maxRow);
 
-      if (this._gapSlotsLeft > 0) { this._gapSlotsLeft--; continue; }
+    const slotSize = this.gridSizes.height;
 
-      if (!this._patternQueue.length) this._fillPatternQueue();
-      const col = this._patternQueue.shift();
-      const rows = Array.isArray(col) ? col : [col];
+    for (let i = 0; i < maxLength; i++) {
+      const sprite = new Sprite(this.texture);
+      sprite.anchor.set(0.5);
 
-      const xSpawn = this.app.screen.width + this._spawnRightOffset;
-      for (const row of rows) this._spawnAtRow(xSpawn, row);
+      sprite.height = slotSize;
+      sprite.width = slotSize;
 
-      if (this._rng() < this.gapChance) {
-        this._gapSlotsLeft = this._randInt(this.gapMinSlots, this.gapMaxSlots);
+      sprite.position.x = sprite.width / 2 + ((i + this.lastGridSlotXAvailable) * slotSize);
+      sprite.position.y = sprite.height / 2 + (randomRow * slotSize);
+
+      this.spritesPool.push(sprite);
+      this.container.addChild(sprite);
+
+      if (i === maxLength - 1) {
+        this.updateRandomGap(i);
       }
     }
   }
 
-  // ---------- Grid / Metrics ----------
-  _measureTextureLogicalSize() {
-    const src = this._texture.source;
-    const res = src?.resolution ?? 1;
-    this._logicalW = (src?.width ?? this._texture.width) / res;
-    this._logicalH = (src?.height ?? this._texture.height) / res;
-  }
+  genDiagonalUpBurst() {
+    const maxLength = getRandomInt(this.configs.minCols, this.configs.maxCols);
+    const minRow = this.configs.deadRowsTop;
+    const maxRow = this.configs.totalRows - this.configs.deadRowsBottom - 1;
+    let randomStartRow = getRandomInt(minRow, maxRow);
+    let currentRow = randomStartRow;
 
-  _recomputeGrid(forcedHeight) {
-    const H = Math.max(1, Math.floor(forcedHeight ?? this.app.screen.height));
-    const rowH = Math.max(4, Math.floor(H / this.gridRows));
+    const slotSize = this.gridSizes.height;
 
-    // square slot size and column width
-    this._slotSide = rowH;
-    this._slotWidthPx = this._slotSide; // square cadence horizontally
+    for (let i = 0; i < maxLength; i++) {
+      const sprite = new Sprite(this.texture);
+      sprite.anchor.set(0.5);
 
-    // row centers
-    this._rowCenters = Array.from({ length: this.gridRows }, (_, i) => Math.round(i * rowH + rowH / 2));
+      sprite.height = slotSize;
+      sprite.width = slotSize;
 
-    // usable rows = remove top/bottom dead zones
-    const lastUsable = this.gridRows - this.deadRowsBottom - 1;
-    const firstUsable = this.deadRowsTop;
-    this._usableRowIds = [];
-    for (let i = firstUsable; i <= lastUsable; i++) this._usableRowIds.push(i);
+      sprite.position.x = sprite.width / 2 + ((i + this.lastGridSlotXAvailable) * slotSize);
+      sprite.position.y = sprite.height / 2 + (currentRow * slotSize);
 
-    // keep pattern queue (row indices still valid unless config changed)
-  }
+      currentRow--;
 
-  _targetCoinScale() {
-    const maxTexSide = Math.max(this._logicalW, this._logicalH) || 1;
-    const target = Math.max(2, this._slotSide - 2 * this.slotPadding);
-    return target / maxTexSide;
-  }
+      if (currentRow < minRow) {
+        currentRow = getRandomInt(minRow, maxRow);
+      }
 
-  _applyScaleToAllSprites() {
-    const sc = this._targetCoinScale();
-    for (const s of this._pool)  s.scale.set(sc);
-    for (const s of this._alive) s.scale.set(sc);
-  }
+      this.spritesPool.push(sprite);
+      this.container.addChild(sprite);
 
-  // ---------- Spawn helpers ----------
-  _spawnAtRow(x, rowIndex) {
-    const s = this._pool.length ? this._pool.pop() : new Sprite(this._texture);
-    if (!s.parent) this.container.addChild(s);
-
-    s.x = x;
-    s.y = this._rowCenters[Math.max(0, Math.min(this.gridRows - 1, rowIndex))] ?? (this.app.screen.height / 2);
-    s.angle = 0;
-    s.visible = true;
-    s.renderable = true;
-    s.__vx = -this.speed;
-    s.__vy = 0;
-
-    // ensure correct scale in case pool was empty
-    s.scale.set(this._targetCoinScale());
-
-    this._alive.add(s);
-    return s;
-  }
-
-  _despawn(s) {
-    s.visible = false;
-    s.renderable = false;
-    s.__vx = 0;
-    s.__vy = 0;
-    this._alive.delete(s);
-    this._pool.push(s);
-  }
-
-  // ---------- Pattern generation (row-based) ----------
-  _fillPatternQueue() {
-    const picked = (this.pattern === "any") ? this._pickWeightedPattern() : this.pattern;
-
-    switch (picked) {
-      case "line":         this._genLine(); break;
-      case "diagonalUp":   this._genDiagonal(true); break;
-      case "diagonalDown": this._genDiagonal(false); break;
-      case "peak":         this._genPeak(); break;
-      case "V":            this._genV(); break;
-      case "block":        this._genBlock(); break;
-      default:              this._genRandomBurst(); break; // "random"
+      if (i === maxLength - 1) {
+        this.updateRandomGap(i);
+      }
     }
   }
 
-  _maxColumnsForViewport(buffer = 2) {
-    const w = this.app.screen.width;
-    return Math.max(2, Math.floor(w / this._slotWidthPx) + buffer);
-  }
+  genDiagonalDownBurst() {
+    const maxLength = getRandomInt(this.configs.minCols, this.configs.maxCols);
+    const minRow = this.configs.deadRowsTop;
+    const maxRow = this.configs.totalRows - this.configs.deadRowsBottom - 1;
+    let randomStartRow = getRandomInt(minRow, maxRow);
+    let currentRow = randomStartRow;
 
-  _randomRow() {
-    const list = this._usableRowIds;
-    return list[this._randInt(0, Math.max(0, list.length - 1))] ?? Math.max(0, Math.min(this.gridRows - 1, this.deadRowsTop));
-  }
+    const slotSize = this.gridSizes.height;
 
-  _stackAtRow(rowIndex, thickness) {
-    if (thickness <= 1) return [rowIndex|0];
-    const half = (thickness - 1) / 2;
-    const rows = [];
-    for (let i = -half; i <= half; i++) {
-      const r = Math.round(rowIndex + i);
-      if (this._usableRowIds.includes(r)) rows.push(r);
-    }
-    return rows.length ? rows : [rowIndex];
-  }
+    for (let i = 0; i < maxLength; i++) {
+      const sprite = new Sprite(this.texture);
+      sprite.anchor.set(0.5);
 
-  _genRandomBurst() {
-    const maxCols = this._maxColumnsForViewport();
-    const len = Math.min(maxCols, this._randInt(this.shapeRandom.minCols, this.shapeRandom.maxCols));
-    for (let i = 0; i < len; i++) {
-      const r0 = this._randomRow();
-      this._patternQueue.push(this._stackAtRow(r0, this.shapeRandom.thickness));
-    }
-  }
+      sprite.height = slotSize;
+      sprite.width = slotSize;
 
-  _genLine() {
-    const maxCols = this._maxColumnsForViewport();
-    const len = Math.min(maxCols, this._randInt(this.shapeLine.minCols, this.shapeLine.maxCols));
-    const r0 = this._randomRow();
-    for (let i = 0; i < len; i++) this._patternQueue.push(this._stackAtRow(r0, this.shapeLine.thickness));
-  }
+      sprite.position.x = sprite.width / 2 + ((i + this.lastGridSlotXAvailable) * slotSize);
+      sprite.position.y = sprite.height / 2 + (currentRow * slotSize);
 
-  _genDiagonal(upwards) {
-    const maxCols = this._maxColumnsForViewport();
-    const len = Math.min(maxCols, this._randInt(this.shapeDiagonal.minCols, this.shapeDiagonal.maxCols));
-    const list = this._usableRowIds;
-    if (!list.length) return;
+      currentRow++;
 
-    // start in middle of usable band
-    const startIdx = Math.floor(list.length / 2);
-    let r = list[this._randInt(Math.max(0, startIdx - 1), Math.min(list.length - 1, startIdx + 1))];
-    const step = upwards ? -1 : 1;
+      if (currentRow >= maxRow) {
+        currentRow = getRandomInt(minRow, maxRow);
+      }
 
-    for (let i = 0; i < len; i++) {
-      this._patternQueue.push(this._stackAtRow(r, this.shapeDiagonal.thickness));
-      // move one row (clamped within usable)
-      let next = r + step;
-      if (!this._usableRowIds.includes(next)) next = r - step; // bounce
-      if (!this._usableRowIds.includes(next)) next = r;         // stuck
-      r = next;
+      this.spritesPool.push(sprite);
+      this.container.addChild(sprite);
+
+      if (i === maxLength - 1) {
+        this.updateRandomGap(i);
+      }
     }
   }
 
-  _genPeak() {
-    const maxCols = this._maxColumnsForViewport();
-    const len = Math.min(maxCols, this._randInt(this.shapePeak.minCols, this.shapePeak.maxCols));
-    const half = Math.max(2, Math.floor(len / 2));
-    const list = this._usableRowIds;
-    if (!list.length) return;
+  genPeakBurst() {
+    const maxLength = getRandomInt(this.configs.minCols, this.configs.maxCols);
+    const minRow = this.configs.deadRowsTop;
+    const maxRow = this.configs.totalRows - this.configs.deadRowsBottom - 1;
+    let randomStartRow = getRandomInt(minRow, maxRow);
+    let currentRow = randomStartRow;
 
-    let r = list[Math.floor(list.length / 2)];
-    for (let i = 0; i < half; i++) {
-      this._patternQueue.push(this._stackAtRow(r, this.shapePeak.thickness));
-      const up = r - 1; r = this._usableRowIds.includes(up) ? up : r; // up slope
+    const halfLength = Math.floor(maxLength / 2);
+    let direction = -1; // -1 = up, +1 = down
+
+    const slotSize = this.gridSizes.height;
+
+    for (let i = 0; i < maxLength; i++) {
+      const sprite = new Sprite(this.texture);
+      sprite.anchor.set(0.5);
+      sprite.height = slotSize;
+      sprite.width = slotSize;
+
+      if (i === halfLength) {
+        direction = 1;
+      }
+
+      currentRow += direction;
+
+      if (currentRow < minRow) {
+        currentRow = minRow + 1;
+        direction = 1;
+      } else if (currentRow > maxRow) {
+        currentRow = maxRow + 1;
+        direction = -1;
+      }
+
+      sprite.position.x = sprite.width / 2 + ((i + this.lastGridSlotXAvailable) * slotSize);
+      sprite.position.y = sprite.height / 2 + (currentRow * slotSize);
+
+      this.spritesPool.push(sprite);
+      this.container.addChild(sprite);
+
+      if (i === maxLength - 1) {
+        this.updateRandomGap(i);
+      }
     }
-    for (let i = 0; i < len - half; i++) {
-      this._patternQueue.push(this._stackAtRow(r, this.shapePeak.thickness));
-      const down = r + 1; r = this._usableRowIds.includes(down) ? down : r; // down slope
+  }
+
+  genVBurst() {
+    const maxLength = getRandomInt(this.configs.minCols, this.configs.maxCols);
+    const minRow = this.configs.deadRowsTop;
+    const maxRow = this.configs.totalRows - this.configs.deadRowsBottom - 1;
+    let randomStartRow = getRandomInt(minRow, maxRow);
+    let currentRow = randomStartRow;
+
+    const halfLength = Math.floor(maxLength / 2);
+    let direction = 1; // 1 = up, -1 = down
+
+    const slotSize = this.gridSizes.height;
+
+    for (let i = 0; i < maxLength; i++) {
+      const sprite = new Sprite(this.texture);
+      sprite.anchor.set(0.5);
+      sprite.height = slotSize;
+      sprite.width = slotSize;
+
+      if (i === halfLength) {
+        direction = -1;
+      }
+
+      currentRow += direction;
+
+      if (currentRow < minRow) {
+        currentRow = minRow + 1;
+        direction = 1;
+      } else if (currentRow > maxRow) {
+        currentRow = maxRow + 1;
+        direction = -1;
+      }
+
+      sprite.position.x = sprite.width / 2 + ((i + this.lastGridSlotXAvailable) * slotSize);
+      sprite.position.y = sprite.height / 2 + (currentRow * slotSize);
+
+      this.spritesPool.push(sprite);
+      this.container.addChild(sprite);
+
+      if (i === maxLength - 1) {
+        this.updateRandomGap(i);
+      }
     }
   }
 
-  _genV() {
-    const maxCols = this._maxColumnsForViewport();
-    const len = Math.min(maxCols, this._randInt(this.shapeV.minCols, this.shapeV.maxCols));
-    const half = Math.max(2, Math.floor(len / 2));
-    const list = this._usableRowIds;
-    if (!list.length) return;
+  genBlockBurst() {
+    const maxLength = getRandomInt(this.configs.minCols, this.configs.maxCols);
+    const minRow = this.configs.deadRowsTop;
+    const maxRow = this.configs.totalRows - this.configs.deadRowsBottom - 1;
+    const randomRow = getRandomInt(minRow, maxRow);
+    const rowsCount = getRandomInt(this.configs.deadRowsBottom, Math.floor((maxRow - randomRow) / 2));
 
-    let r = list[Math.floor(list.length / 2)];
-    for (let i = 0; i < half; i++) {
-      this._patternQueue.push(this._stackAtRow(r, this.shapeV.thickness));
-      const down = r + 1; r = this._usableRowIds.includes(down) ? down : r; // down slope
+    const slotSize = this.gridSizes.height;
+
+    for (let i = 0; i < maxLength; i++) {
+      for (let j = 0; j < rowsCount; j++) {
+        const sprite = new Sprite(this.texture);
+        sprite.anchor.set(0.5);
+
+        sprite.height = slotSize;
+        sprite.width = slotSize;
+
+        sprite.position.x = sprite.width / 2 + ((i + this.lastGridSlotXAvailable) * slotSize);
+        sprite.position.y = sprite.height / 2 + ((randomRow + j) * slotSize);
+
+        this.spritesPool.push(sprite);
+        this.container.addChild(sprite);
+      }
+
+      if (i === maxLength - 1) {
+        this.updateRandomGap(i);
+      }
     }
-    for (let i = 0; i < len - half; i++) {
-      this._patternQueue.push(this._stackAtRow(r, this.shapeV.thickness));
-      const up = r - 1; r = this._usableRowIds.includes(up) ? up : r; // up slope
+  }
+
+  genRandomBurst() {
+    const maxLength = getRandomInt(this.configs.minCols, this.configs.maxCols);
+    const minRow = this.configs.deadRowsTop;
+    const maxRow = this.configs.totalRows - this.configs.deadRowsBottom - 1;
+
+    const slotSize = this.gridSizes.height;
+
+    for (let i = 0; i < maxLength; i++) {
+      const randomRow = getRandomInt(minRow, maxRow);
+
+      const sprite = new Sprite(this.texture);
+      sprite.anchor.set(0.5);
+
+      sprite.height = slotSize;
+      sprite.width = slotSize;
+
+      sprite.position.x = sprite.width / 2 + ((i + this.lastGridSlotXAvailable) * slotSize);
+      sprite.position.y = sprite.height / 2 + (randomRow * slotSize);
+
+      this.spritesPool.push(sprite);
+      this.container.addChild(sprite);
+
+      if (i === maxLength - 1) {
+        this.updateRandomGap(i);
+      }
     }
-  }
-
-  _genBlock() {
-    const maxCols = this._maxColumnsForViewport();
-    const cols = Math.min(maxCols, this._randInt(this.shapeBlock.minCols, this.shapeBlock.maxCols));
-
-    // rows for block: choose contiguous band within usable rows
-    const usable = this._usableRowIds;
-    if (!usable.length) return;
-
-    const maxRows = Math.min(usable.length, this.shapeBlock.maxRows);
-    const rowsCount = Math.max(1, Math.min(maxRows, this._randInt(this.shapeBlock.minRows, maxRows)));
-
-    const startMax = Math.max(0, usable.length - rowsCount);
-    const startIdx = this._randInt(0, startMax);
-    const band = usable.slice(startIdx, startIdx + rowsCount);
-
-    for (let c = 0; c < cols; c++) this._patternQueue.push([...band]);
-  }
-
-  // ---------- RNG & helpers ----------
-  _rng() {
-    this._rngState = (this._rngState + 0x6D2B79F5) >>> 0;
-    let t = this._rngState;
-    t = Math.imul(t ^ (t >>> 15), 1 | t);
-    t ^= t + Math.imul(t ^ (t >>> 7), 61 | t);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  }
-  _randInt(a, b) { return a + Math.floor(this._rng() * (b - a + 1)); }
-
-  _buildPatternWeights(input = {}) {
-    const keys = ["random","line","diagonalUp","diagonalDown","peak","V","block"];
-    const weights = {}; let sum = 0;
-    for (const k of keys) { const w = Number(input?.[k] ?? 1); const v = isFinite(w) && w > 0 ? w : 0; weights[k] = v; sum += v; }
-    if (sum <= 0) { for (const k of keys) weights[k] = 1; sum = keys.length; }
-    for (const k of keys) weights[k] = weights[k] / sum;
-    return weights;
-  }
-
-  _pickWeightedPattern() {
-    const r = this._rng(); let acc = 0;
-    for (const [name, w] of Object.entries(this._patternWeights)) { acc += w; if (r <= acc) return name; }
-    return "random";
   }
 }
