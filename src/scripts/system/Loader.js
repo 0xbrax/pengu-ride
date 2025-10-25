@@ -24,28 +24,30 @@ export class Loader extends EventEmitter {
         this.emit('progress', progress);
     }
 
-    loadAssets() {
-        return new Promise(async resolve => {
-            for (const key in this.ASSETS_MAP) {
-                // if (key === 'audio') {
-                //     for (const subKey in this.ASSETS_MAP[key]) {
-                //         // $globals.assets[key][subKey] = await this.loadSound(this.ASSETS_MAP[key][subKey]);
-                //         this.updateProgress();
-                //     }
-                //     continue;
-                // }
-                
-                for (const currentAsset of this.ASSETS_MAP[key]) {
-                    await Assets.load({ alias: currentAsset.alias, src: currentAsset.src });
+  // Option 4: Parallel with individual progress - Best of both worlds
+  loadAssets() {
+    return new Promise(async resolve => {
+      const allAssets = [];
 
-                    this.updateProgress();
-                }
+      // Collect all assets with progress tracking
+      for (const key in this.ASSETS_MAP) {
+        for (const currentAsset of this.ASSETS_MAP[key]) {
+          // Create promise that updates progress immediately when this specific asset completes
+          allAssets.push(
+            Assets.load({ alias: currentAsset.alias, src: currentAsset.src })
+              .then(() => this.updateProgress()) // Progress updates as soon as this asset finishes
+          );
+        }
+      }
 
-            }
+      // Load all assets in parallel - maximum speed
+      // Progress updates smoothly as individual assets complete
+      // Best approach: fast loading + smooth progress bar
+      await Promise.all(allAssets);
 
-            resolve();
-        });
-    }
+      resolve();
+    });
+  }
 
     loadSound(src) {
         return new Promise((resolve) => {
