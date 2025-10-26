@@ -46,7 +46,7 @@ export class Character {
     this._scaleMul = 1;
 
     // gaps (scaled on resize): keep a bit of headroom and floor room
-    this.topGapFactor = 0.10;    // % of character height from top
+    this.topGapFactor = 0.10; // % of character height from top
     this.bottomGapFactor = 0.30; // % of character height from bottom
     this.minY = 0; // computed on resize
     this.maxY = 0; // computed on resize
@@ -92,7 +92,7 @@ export class Character {
     this.gameInstance.app.stage.addChild(this.spine);
   }
 
-  jump(){
+  jump() {
     if (!this.spine || !this.isAlive) {
       return;
     }
@@ -164,7 +164,7 @@ export class Character {
     this.jump();
   }
 
-  die(mode, dir){
+  die(mode, dir) {
     if (mode === "enemy") {
       const timeout = setTimeout(() => {
         this.lastDieDir = dir;
@@ -205,7 +205,7 @@ export class Character {
       x: hitboxX,
       y: hitboxY,
       width: hitboxWidth,
-      height: hitboxHeight
+      height: hitboxHeight,
     };
   }
 
@@ -285,13 +285,14 @@ export class Character {
 
     // Integrate position
     this.spine.y += this.vy * dt;
-
+    
     // Clamp to bounds
     if (this.spine.y > this.maxY) {
       this.spine.y = this.maxY;
       this.vy = 0; // stop falling at the floor
     }
 
+    // Keep this after top clamp and before bottom clamp
     if (this.vy === 0 && !this.isAlive && this.isFalling) {
       this.isFalling = false;
       this.spine.state.addAnimation(0, CHARACTER_ANIMATIONS.IDLE, false, 0.2);

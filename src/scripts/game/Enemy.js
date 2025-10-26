@@ -13,7 +13,7 @@ export class Enemy {
     this.scale = 0.4;
 
     this.debugGraphics = null;
-
+    
     this.speed = 240;
     this.dir = -1; // 1 = go to the right, -1 = go to the left
     this.padding = 0;
@@ -33,25 +33,24 @@ export class Enemy {
     const sheet = Assets.get(this.ASSETS_MAP.enemy[0].alias); // enemy json
 
     const pad3 = (n) => String(n).padStart(3, "0");
-    function makeRangeFrames(prefix, start, end, ext = ".png") {
+
+    const makeRangeFrames = (prefix, start, end, ext = ".png") => {
       const frames = [];
       for (let i = start; i <= end; i++) {
-        const name = `${prefix}${pad3(i)}${ext}`; // es. 0_specialty_walk_000.png
+        const name = `${prefix}${pad3(i)}${ext}`; // e.g. 0_specialty_walk_000.png
         const tex = sheet.textures[name];
         if (!tex) {
-          console.warn("Frame mancante:", name);
+          console.warn("Missing frame: ", name);
           continue;
         }
         frames.push(tex);
       }
       return frames;
-    }
+    };
 
-// 3) Crea i due set di texture (walk/attack)
-    this.framesWalk   = makeRangeFrames("0_specialty_walk_",   0, 19);
+    this.framesWalk = makeRangeFrames("0_specialty_walk_", 0, 19);
     this.framesAttack = makeRangeFrames("0_specialty_attack_", 0, 19);
 
-// 4) UN solo AnimatedSprite, parti con walk
     this.sprite = new AnimatedSprite(this.framesWalk);
     this.sprite.anchor.set(0.5);
 
@@ -76,7 +75,7 @@ export class Enemy {
     this.gameInstance.app.stage.addChild(this.subSprite);
   }
 
-  createSlash(){
+  createSlash() {
     const sheet = Assets.get(this.ASSETS_MAP.enemy[2].alias); // slash json
 
     this.subSprite = new AnimatedSprite(Object.values(sheet.textures));
@@ -99,7 +98,7 @@ export class Enemy {
       this.sprite.animationSpeed = 0.45;
       this.sprite.gotoAndPlay(0);
 
-      // Stop for a bit
+      // Stop for a while
       this.speed = 0;
 
       this.playSlash();
@@ -109,7 +108,7 @@ export class Enemy {
         this.speed = 120;
 
         this.playAnim("walk");
-      }
+      };
     }
   }
 
@@ -119,7 +118,7 @@ export class Enemy {
 
     this.subSprite.visible = true;
     this.subSprite.y = this.sprite.y + (60 * scaleRatio);
-    
+
     if (this.dir === -1) {
       this.subSprite.x = this.sprite.x + (15 * scaleRatio);
     } else {
@@ -188,7 +187,7 @@ export class Enemy {
       x: hitboxX,
       y: hitboxY,
       width: hitboxWidth,
-      height: hitboxHeight
+      height: hitboxHeight,
     };
   }
 
@@ -222,14 +221,12 @@ export class Enemy {
     const appWidth = this.gameInstance.app.screen.width;
     const spriteWidth = this.sprite.width;
 
-    const leftEdge  = this.sprite.x + spriteWidth;
+    const leftEdge = this.sprite.x + spriteWidth;
     const rightEdge = this.sprite.x - spriteWidth;
 
-    // collisione con bordo destro
     if (rightEdge >= appWidth - this.padding) {
       // clamp
       this.sprite.x = (appWidth - this.padding) + spriteWidth;
-      // inverti direzione e flip X
       this.dir = -1;
 
       if (this.fixedSpeed) {
@@ -242,12 +239,11 @@ export class Enemy {
       this.hitboxConfig.offsetX = -this.hitboxConfig.offsetX;
     }
 
-    // collisione con bordo sinistro
     if (leftEdge <= this.padding) {
       // clamp
       this.sprite.x = this.padding - spriteWidth;
-      // inverti direzione e flip X
       this.dir = 1;
+
       this.speed = 120;
       this.sprite.scale.x = Math.abs(this.sprite.scale.x);
       this.hitboxConfig.offsetX = -this.hitboxConfig.offsetX;

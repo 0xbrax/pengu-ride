@@ -1,5 +1,5 @@
-import { create } from "zustand";
-import { persist, createJSONStorage } from "zustand/middleware";
+import {create} from "zustand";
+import {persist, createJSONStorage} from "zustand/middleware";
 
 export const useScoreStore = create(
   persist(
@@ -8,16 +8,16 @@ export const useScoreStore = create(
       updateBest: (score) => {
         const currentBest = get().bestScore;
         if (typeof score === "number" && score > currentBest) {
-          set({ bestScore: score });
+          set({bestScore: score});
         }
       },
-      resetBest: () => set({ bestScore: 0 }), // Not used
+      resetBest: () => set({bestScore: 0}), // Not used
     }),
     {
       name: "score-store",
       version: 1,
       storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({ bestScore: state.bestScore }),
-    }
-  )
+      partialize: (state) => ({bestScore: state.bestScore}),
+    },
+  ),
 );

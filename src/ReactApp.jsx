@@ -34,7 +34,7 @@ export default function ReactApp() {
       // clean up
       gameInstance?.destroy();
       setGameInstance(null);
-    }
+    };
   }, []);
 
   useEffect(() => {
@@ -94,5 +94,5 @@ export default function ReactApp() {
         />
       )}
     </>
-  )
+  );
 }

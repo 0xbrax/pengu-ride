@@ -9,143 +9,143 @@ import {ObstacleManager} from "@/scripts/game/ObstacleManager.js";
 import {$configs, $globals} from "@/scripts/system/SETUP.js";
 
 export class MainScene extends EventEmitter {
-    constructor() {
-        super();
-        this.gameInstance = new App();
-        this.isPlaying = false;
-        this.scoreBalance = 0;
-        this.currentLevel = 0;
-        this.nextLevelThreshold = $configs.SCORE_PER_LEVEL;
+  constructor() {
+    super();
+    this.gameInstance = new App();
+    this.isPlaying = false;
+    this.scoreBalance = 0;
+    this.currentLevel = 0;
+    this.nextLevelThreshold = $configs.SCORE_PER_LEVEL;
 
-        this.background = new Background();
-        this.character = new Character();
-        this.enemy = new Enemy();
+    this.background = new Background();
+    this.character = new Character();
+    this.enemy = new Enemy();
 
-        this.coins = new CoinManager();
+    this.coins = new CoinManager();
 
-        this.obstacles = new ObstacleManager();
+    this.obstacles = new ObstacleManager();
 
-        this.initialSpeed = {
-            background: this.background.speeds,
-            coins: this.coins.speed,
-            obstacles: this.obstacles.speed,
-        }
+    this.initialSpeed = {
+      background: this.background.speeds,
+      coins: this.coins.speed,
+      obstacles: this.obstacles.speed,
+    };
+  }
+
+  play() {
+    this.scoreBalance = 0;
+    this.currentLevel = 0;
+    this.nextLevelThreshold = $configs.SCORE_PER_LEVEL;
+
+    this.background.speeds = this.initialSpeed.background;
+    this.coins.speed = this.initialSpeed.coins;
+    this.obstacles.speed = this.initialSpeed.obstacles;
+
+    this.coins.clearAllSprites();
+    this.obstacles.clearSpawnInterval();
+    this.enemy.fixedSpeed = false;
+    if (this.enemy.dir === -1) {
+      this.speed = 240;
+    } else {
+      this.speed = 120;
     }
 
-    play() {
-        this.scoreBalance = 0;
-        this.currentLevel = 0;
-        this.nextLevelThreshold = $configs.SCORE_PER_LEVEL;
+    this.character.play();
 
-        this.background.speeds = this.initialSpeed.background;
-        this.coins.speed = this.initialSpeed.coins;
-        this.obstacles.speed = this.initialSpeed.obstacles;
+    this.isPlaying = true;
 
-        this.coins.clearAllSprites();
-        this.obstacles.clearSpawnInterval();
-        this.enemy.fixedSpeed = false;
-        if (this.enemy.dir === -1) {
-            this.speed = 240;
-        } else {
-            this.speed = 120;
-        }
+    this.gameInstance.container.addEventListener("pointerdown", () => {
+      $globals.sounds.get("jump-sfx").play();
 
-        this.character.play();
+      this.character.jump();
+    });
+  }
 
-        this.isPlaying = true;
+  levelUp() {
+    $globals.sounds.get("win-sfx").play();
 
-        this.gameInstance.container.addEventListener('pointerdown', () => {
-          $globals.sounds.get("jump-sfx").play();
+    this.currentLevel++;
+    this.nextLevelThreshold += $configs.SCORE_PER_LEVEL;
 
-          this.character.jump();
-        });
+    const speedIncrement = 0.02;
+    const speedMultiplier = 1 + (this.currentLevel * speedIncrement);
+
+    this.background.speeds = this.background.speeds.map(speed =>
+      speed * speedMultiplier,
+    );
+    this.coins.speed *= speedMultiplier;
+    this.obstacles.speed *= speedMultiplier;
+
+    this.emit("level-up", {
+      level: this.currentLevel,
+      nextThreshold: this.nextLevelThreshold,
+      speedMultiplier: speedMultiplier,
+    });
+  }
+
+  resize(originalRect) {
+    this.background.resize();
+    this.character.resize();
+    this.enemy.resize();
+    this.coins.resize();
+    this.obstacles.resize();
+  }
+
+  update(dt) {
+    if (!this.isPlaying) {
+      return;
     }
 
-    levelUp() {
-      $globals.sounds.get("win-sfx").play();
+    this.character.update(dt);
+    this.enemy.update(dt);
 
-      this.currentLevel++;
-        this.nextLevelThreshold += $configs.SCORE_PER_LEVEL;
-
-        const speedIncrement = 0.02;
-        const speedMultiplier = 1 + (this.currentLevel * speedIncrement);
-
-        this.background.speeds = this.background.speeds.map(speed =>
-          speed * speedMultiplier
-        );
-        this.coins.speed *= speedMultiplier;
-        this.obstacles.speed *= speedMultiplier;
-
-        this.emit("level-up", {
-            level: this.currentLevel,
-            nextThreshold: this.nextLevelThreshold,
-            speedMultiplier: speedMultiplier
-        });
+    if (this.character.isAlive) {
+      this.background.update(dt);
+      this.coins.update(dt);
+      this.obstacles.update(dt);
     }
 
-    resize(originalRect) {
-        this.background.resize();
-        this.character.resize();
-        this.enemy.resize();
-        this.coins.resize();
-        this.obstacles.resize();
+    if (this.character.isAlive) {
+      this.coins.spritesPool.forEach((coin) => {
+        if (testForAABB(this.character.getHitbox(), coin.getBounds())) {
+          this.emit("coin-collected");
+
+          this.scoreBalance += $configs.SCORE_PER_COIN;
+          this.coins.clearSprite(coin);
+
+          if (this.scoreBalance >= this.nextLevelThreshold && this.currentLevel < $configs.MAX_LEVEL) {
+            this.levelUp();
+          }
+        }
+      });
     }
 
-    update(dt) {
-        if (!this.isPlaying) {
-            return;
-        }
+    if (this.character.isAlive && !this.enemy.fixedSpeed) {
+      if (testForAABB(this.character.getHitbox(), this.enemy.getHitbox())) {
+        this.emit("game-over");
 
-        this.character.update(dt);
-        this.enemy.update(dt);
-
-        if (this.character.isAlive) {
-            this.background.update(dt);
-            this.coins.update(dt);
-            this.obstacles.update(dt);
-        }
-
-        if (this.character.isAlive) {
-            this.coins.spritesPool.forEach((coin) => {
-                if (testForAABB(this.character.getHitbox(), coin.getBounds())) {
-                    this.emit("coin-collected");
-
-                    this.scoreBalance += $configs.SCORE_PER_COIN;
-                    this.coins.clearSprite(coin);
-
-                    if (this.scoreBalance >= this.nextLevelThreshold && this.currentLevel < $configs.MAX_LEVEL) {
-                        this.levelUp();
-                    }
-                }
-            });
-        }
-
-        if (this.character.isAlive && !this.enemy.fixedSpeed) {
-            if (testForAABB(this.character.getHitbox(), this.enemy.getHitbox())) {
-                this.emit("game-over");
-
-                this.character.die("enemy", this.enemy.dir);
-                this.enemy.fixedSpeed = true;
-                this.obstacles.isRunning = false;
-                this.enemy.playAnim("attack");
-            }
-        }
-
-        if (this.character.isAlive) {
-            this.obstacles.spritesPool.forEach((obstacle) => {
-                if (testForAABB(this.character.getHitbox(), this.obstacles.getHitbox(obstacle))) {
-                    this.emit("game-over");
-
-                    this.character.die("obstacle");
-                    this.enemy.fixedSpeed = true;
-                    this.obstacles.isRunning = false;
-                    this.obstacles.animateObstacleHit(obstacle);
-                }
-            });
-        }
+        this.character.die("enemy", this.enemy.dir);
+        this.enemy.fixedSpeed = true;
+        this.obstacles.isRunning = false;
+        this.enemy.playAnim("attack");
+      }
     }
 
-    // destroy() {
-    //     // TODO
-    // }
+    if (this.character.isAlive) {
+      this.obstacles.spritesPool.forEach((obstacle) => {
+        if (testForAABB(this.character.getHitbox(), this.obstacles.getHitbox(obstacle))) {
+          this.emit("game-over");
+
+          this.character.die("obstacle");
+          this.enemy.fixedSpeed = true;
+          this.obstacles.isRunning = false;
+          this.obstacles.animateObstacleHit(obstacle);
+        }
+      });
+    }
+  }
+
+  // destroy() {
+  //     // TODO
+  // }
 }

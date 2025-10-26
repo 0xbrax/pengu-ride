@@ -1,29 +1,29 @@
-import { Assets, EventEmitter } from "pixi.js";
-import { Howl } from 'howler';
-import { ASSETS_MAP } from "@/scripts/system/ASSETS.js";
+import {Assets, EventEmitter} from "pixi.js";
+import {Howl} from "howler";
+import {ASSETS_MAP} from "@/scripts/system/ASSETS.js";
 import {$globals} from "@/scripts/system/SETUP.js";
 
 export class Loader extends EventEmitter {
-    constructor() {
-        super();
+  constructor() {
+    super();
 
-        this.ASSETS_MAP = ASSETS_MAP;
+    this.ASSETS_MAP = ASSETS_MAP;
 
-        this.loadedAssetsCount = 0;
-        this.totalAssetsCount = Object.keys(this.ASSETS_MAP).reduce((acc, key) => {
-            return acc + Object.keys(this.ASSETS_MAP[key]).length;
-        }, 0);
-        
-        void this.loadAssets();
-    }
+    this.loadedAssetsCount = 0;
+    this.totalAssetsCount = Object.keys(this.ASSETS_MAP).reduce((acc, key) => {
+      return acc + Object.keys(this.ASSETS_MAP[key]).length;
+    }, 0);
 
-    // 0.0 ... 1.0
-    // 0 is not emitted
-    updateProgress() {
-        this.loadedAssetsCount++;
-        const progress = this.loadedAssetsCount / this.totalAssetsCount;
-        this.emit('progress', progress);
-    }
+    void this.loadAssets();
+  }
+
+  // 0.0 ... 1.0
+  // 0 is not emitted (default value)
+  updateProgress() {
+    this.loadedAssetsCount++;
+    const progress = this.loadedAssetsCount / this.totalAssetsCount;
+    this.emit("progress", progress);
+  }
 
   loadAssets() {
     return new Promise(async resolve => {
@@ -33,8 +33,8 @@ export class Loader extends EventEmitter {
         if (key === "audio") {
           for (const currentAsset of this.ASSETS_MAP[key]) {
             allAssets.push(
-              this.loadSound({ alias: currentAsset.alias, src: currentAsset.src })
-                .then(() => this.updateProgress())
+              this.loadSound({alias: currentAsset.alias, src: currentAsset.src})
+                .then(() => this.updateProgress()),
             );
           }
           continue;
@@ -42,8 +42,8 @@ export class Loader extends EventEmitter {
 
         for (const currentAsset of this.ASSETS_MAP[key]) {
           allAssets.push(
-            Assets.load({ alias: currentAsset.alias, src: currentAsset.src })
-              .then(() => this.updateProgress())
+            Assets.load({alias: currentAsset.alias, src: currentAsset.src})
+              .then(() => this.updateProgress()),
           );
         }
       }
@@ -54,15 +54,15 @@ export class Loader extends EventEmitter {
     });
   }
 
-    loadSound({ alias, src }) {
-        return new Promise((resolve) => {
-            const sound = new Howl({
-                src: [src],
-                onload: () => {
-                    $globals.sounds.set(alias, sound);
-                    resolve(sound);
-                },
-            });
-        });
-    }
+  loadSound({alias, src}) {
+    return new Promise((resolve) => {
+      const sound = new Howl({
+        src: [src],
+        onload: () => {
+          $globals.sounds.set(alias, sound);
+          resolve(sound);
+        },
+      });
+    });
+  }
 }

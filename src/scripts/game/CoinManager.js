@@ -107,7 +107,7 @@ export class CoinManager {
     const randomIndex = Math.floor(rngFunction() * keys.length);
     return keys[randomIndex];
   }
-  
+
   updateRandomGap(colNumber) {
     const randomGap = getRandomInt(this.configs.minGap, this.configs.maxGap);
 
@@ -138,7 +138,7 @@ export class CoinManager {
 
       sprite.position.x = sprite.width / 2 + (currentGridX * newSlotSize);
       sprite.position.y = sprite.height / 2 + (currentGridY * newSlotSize);
-    })
+    });
   }
 
   update(dt) {
@@ -204,7 +204,7 @@ export class CoinManager {
       console.warn("Sprites pool size after clear: ", this.spritesPool.size);
     }
   }
-
+  
   destroy() {
     this.clearAllSprites();
 
@@ -219,6 +219,7 @@ export class CoinManager {
   /**
    * GENERATION PATTERNS
    */
+  // TODO Refactor duplicate code
   genLineBurst() {
     const maxLength = getRandomInt(this.configs.minCols, this.configs.maxCols);
     const minRow = this.configs.deadRowsTop;

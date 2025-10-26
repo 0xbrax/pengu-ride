@@ -39,7 +39,6 @@ export class ObstacleManager {
     this.isRunning = false;
 
 
-
     // DEBUG
     this.debugEnabled = false;
     this.debugGraphics = new Graphics();
@@ -169,7 +168,7 @@ export class ObstacleManager {
       if (sprite.position.x < -sprite.width) {
         this.clearSprite(sprite);
       }
-    })
+    });
 
     // Redraw debug overlay
     this.drawDebugHitboxes();
@@ -178,16 +177,6 @@ export class ObstacleManager {
   /**
    * ANIMATION
    */
-  globalToLocalPoint(xPx, yPx) {
-    return this.container.toLocal({ x: xPx, y: yPx });
-  }
-  globalXToLocal(xPx) {
-    return this.globalToLocalPoint(xPx, 0).x;
-  }
-  globalYToLocal(yPx) {
-    return this.globalToLocalPoint(0, yPx).y;
-  }
-
   animateObstacleHit(
     obstacle,
     {
@@ -197,8 +186,8 @@ export class ObstacleManager {
       shakeDuration = 0.35, // total shake duration
       shakeRepeats = 4, // number of "half-oscillations" (yoyo)
       fallDuration = 0.6, // fall duration
-      rotateSide = "left" // "right" => +90°, "left" => -90°
-    } = {}
+      rotateSide = "left", // "right" => +90°, "left" => -90°
+    } = {},
   ) {
     if (!obstacle) {
       return;
@@ -221,16 +210,16 @@ export class ObstacleManager {
     const targetRotation = (rotateSide === "left" ? -1 : 1) * (Math.PI / 2);
 
     const tl = gsap.timeline({
-      defaults: { ease: "power2.out" },
+      defaults: {ease: "power2.out"},
       onComplete: () => {
         obstacle._isAnimating = false;
-      }
+      },
     });
 
     // 1) Push to the right
     tl.to(obstacle, {
       x: obstacle.x + nudgeLocalX,
-      duration: 0.12
+      duration: 0.12,
     });
 
     // 2) Horizontal shake
@@ -239,14 +228,14 @@ export class ObstacleManager {
       duration: shakeDuration / (shakeRepeats || 1),
       yoyo: true,
       repeat: shakeRepeats,
-      ease: "sine.inOut"
+      ease: "sine.inOut",
     });
 
     // 3.1) Fall down
     tl.to(obstacle, {
       y: groundLocalY,
       duration: fallDuration,
-      ease: "power2.in"
+      ease: "power2.in",
     });
     // 3.2) Rotate
     tl.to(
@@ -255,17 +244,29 @@ export class ObstacleManager {
         x: startX,
         rotation: targetRotation,
         duration: fallDuration,
-        ease: "power1.in"
+        ease: "power1.in",
       },
-      "<" // sync with fall down
+      "<", // sync with fall down
     );
 
     return tl;
   }
 
+  /**
+   * UTILS
+   */
+  globalToLocalPoint(xPx, yPx) {
+    return this.container.toLocal({x: xPx, y: yPx});
+  }
 
+  globalXToLocal(xPx) {
+    return this.globalToLocalPoint(xPx, 0).x;
+  }
 
-  // ---------- Collision / Hitbox ----------
+  globalYToLocal(yPx) {
+    return this.globalToLocalPoint(0, yPx).y;
+  }
+
   getHitbox(obstacle) {
     const originalBounds = obstacle.getBounds();
 
@@ -282,13 +283,12 @@ export class ObstacleManager {
       (originalBounds.height - hitboxHeight) / 2 +
       (originalBounds.height * this.hitboxConfig.offsetY);
 
-    return { x: hitboxX, y: hitboxY, width: hitboxWidth, height: hitboxHeight };
+    return {x: hitboxX, y: hitboxY, width: hitboxWidth, height: hitboxHeight};
   }
 
-  // Converte un rettangolo globale in locale del container
   hitboxGlobalToLocalRect(hit) {
-    const p1 = this.container.toLocal({ x: hit.x, y: hit.y });
-    const p2 = this.container.toLocal({ x: hit.x + hit.width, y: hit.y + hit.height });
+    const p1 = this.globalToLocalPoint(hit.x, hit.y);
+    const p2 = this.globalToLocalPoint(hit.x + hit.width, hit.y + hit.height);
     return {
       x: p1.x,
       y: p1.y,
@@ -308,8 +308,8 @@ export class ObstacleManager {
       const hbLocal = this.hitboxGlobalToLocalRect(hbGlobal);
 
       g.rect(hbLocal.x, hbLocal.y, hbLocal.width, hbLocal.height)
-        .stroke({ width: 1, color: 0xff0000, alpha: 1 })
-        .fill({ color: 0xff0000, alpha: 0.15 });
+        .stroke({width: 1, color: 0xff0000, alpha: 1})
+        .fill({color: 0xff0000, alpha: 0.15});
     }
   }
 }
