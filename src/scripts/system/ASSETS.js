@@ -86,22 +86,22 @@ export const ASSETS_MAP = {
     {
       alias: "tick-sfx",
       src: "/audio/tick-sfx_192.mp3",
-      volume: 0.1,
+      volume: 0.2,
     },
     {
       alias: "jump-sfx",
       src: "/audio/jump-sfx_192.mp3",
-      volume: 0.5,
+      volume: 1,
     },
     {
       alias: "win-sfx",
       src: "/audio/win-sfx_192.mp3",
-      volume: 1,
+      volume: 0.8,
     },
     {
       alias: "game-over-sfx",
       src: "/audio/game-over-sfx_192.mp3",
-      volume: 0.5,
+      volume: 0.8,
     },
   ],
 };
