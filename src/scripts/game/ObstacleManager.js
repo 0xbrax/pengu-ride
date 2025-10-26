@@ -1,39 +1,31 @@
-import { App } from "@/scripts/system/App.js";
-import { Assets, Container, Graphics, Sprite } from "pixi.js";
-import { ASSETS_MAP } from "@/scripts/system/ASSETS.js";
-import { COIN_SPEED } from "@/scripts/game/Background.js";
-import { gsap } from "gsap";
+import {App} from "@/scripts/system/App.js";
+import {Assets, Container, Graphics, Sprite, Texture} from "pixi.js";
+import {ASSETS_MAP} from "@/scripts/system/ASSETS.js";
+import {COIN_SPEED} from "@/scripts/game/Background.js";
+import {gsap} from "gsap";
+import {getRandomInt} from "@/scripts/system/utils.js";
 
 export class ObstacleManager {
   constructor() {
     this.gameInstance = new App();
     this.container = new Container();
+
     this.container.zIndex = 20;
     this.gameInstance.app.stage.addChild(this.container);
 
-    this.asset = Assets.get(ASSETS_MAP.texture[1].alias);
-
-    // Pool
-    this.maxObstacles = 4;
-    this.obstaclePool = [];
-    this.activeObstacles = [];
-
-    // Percentuali schermo
-    this.yPercent = -0.10;
-    this.xSpacingPercent = 0.15;
-
-    // Stato generazione
-    this.lastObstacleX = 0;
-
-    // Scala sprite
-    this.baseScale = 1;
-    this.baseHeight = null;
-    this.scaleVariations = [0.3, 0.4, 0.5];
-
-    // Velocità
+    this.texture = new Texture(Assets.get(ASSETS_MAP.texture[1].alias)); // icicle
     this.speed = COIN_SPEED;
 
-    // Collision (percentuali sul bound visivo)
+    this.configs = {
+      spriteMainScale: 0.35,
+      spriteScaleVariations: [0.7, 0.85, 1],
+      minCols: 1,
+      maxCols: 5,
+      yOffset: 3,
+      xOffset: 39,
+      timeouts: [3_000, 3_500, 4_000],
+    };
+
     this.hitboxConfig = {
       width: 0.16,
       height: 0.72,
@@ -41,193 +33,181 @@ export class ObstacleManager {
       offsetY: -0.02,
     };
 
+    this.spritesPool = new Set();
+    this.timeouts = [];
+    this.lastSpawnX = 0;
+    this.isRunning = false;
+
+
+
     // DEBUG
-    this.debugEnabled = false; // <--- attiva/disattiva overlay hitbox
+    this.debugEnabled = false;
     this.debugGraphics = new Graphics();
     this.debugGraphics.zIndex = 1300;
-    this.container.addChild(this.debugGraphics);
-    // (se usi zIndex, ricordati: this.container.sortableChildren = true)
-
-    this.initializePool();
+    this.gameInstance.app.stage.addChild(this.debugGraphics);
   }
 
-  setDebugEnabled(flag) {
-    this.debugEnabled = !!flag;
-    this.debugGraphics.visible = this.debugEnabled;
-    if (!this.debugEnabled) this.debugGraphics.clear();
-  }
+  createSprites() {
+    const maxLength = getRandomInt(this.configs.minCols, this.configs.maxCols);
 
-  resetLevel() {
-    // stop movimento/animazioni
-    for (const o of [...this.activeObstacles, ...this.obstaclePool]) {
-      if (!o) continue;
-      if (typeof gsap !== "undefined") gsap.killTweensOf(o);
-      o._isAnimating = false;
-      // stato pulito
-      o.rotation = 0;
-      o.visible = false;
-    }
-    this.activeObstacles.length = 0;
-
-    // pulizia overlay debug
-    if (this.debugGraphics) this.debugGraphics.clear();
-
-    // azzera stato di generazione
-    this.lastObstacleX = 0;
-
-    // rigenera
-    this.generateInitialObstacles();
-  }
-
-  initializePool() {
-    for (let i = 0; i < this.maxObstacles; i++) {
-      const obstacle = this.createObstacle();
-      obstacle.visible = false;
-      obstacle.originalScaleMultiplier = 1.0;
-      this.obstaclePool.push(obstacle);
-      this.container.addChild(obstacle);
+    if (this.lastSpawnX === 0) {
+      this.lastSpawnX = this.gameInstance.app.screen.width - this.container.position.x;
     }
 
-    if (this.obstaclePool.length > 0) {
-      this.baseScale = this.obstaclePool[0].scale?.y || 1;
-      this.baseHeight = this.gameInstance.app.screen.height;
+    for (let i = 0; i < maxLength; i++) {
+      const randomScale = this.configs.spriteScaleVariations[getRandomInt(0, this.configs.spriteScaleVariations.length - 1)];
+
+      const scaleFactor = this.gameInstance.app.screen.height / this.texture.height;
+      const newScale = this.configs.spriteMainScale * randomScale * scaleFactor;
+
+      const sprite = new Sprite(this.texture);
+      sprite.anchor.set(0.5, 0); // top-center
+
+      sprite.scale.set(newScale);
+      sprite._scaleFactor = scaleFactor;
+      sprite._randomScale = randomScale;
+
+      const spawnX = this.gameInstance.app.screen.width - this.container.position.x + sprite.width + (i * this.configs.xOffset * scaleFactor);
+      sprite.position.x = spawnX;
+      sprite._spawnX = spawnX;
+
+      const quarterHeight = (this.texture.height * newScale) / 4;
+      sprite.position.y = (this.configs.yOffset * scaleFactor) - quarterHeight;
+
+      this.spritesPool.add(sprite);
+      this.container.addChild(sprite);
+    }
+  }
+
+  startSpawnInterval() {
+    if (this.isRunning) {
+      return;
     }
 
-    // abilita sorting per zIndex se necessario
-    this.container.sortableChildren = true;
+    this.isRunning = true;
+
+    const scheduleNext = () => {
+      const ms = this.configs.timeouts[getRandomInt(0, this.configs.timeouts.length - 1)];
+      const id = setTimeout(() => {
+        if (!this.isRunning) {
+          return;
+        }
+
+        this.createSprites();
+        scheduleNext();
+      }, ms);
+
+      this.timeouts.push(id);
+    };
+
+    this.createSprites();
+    scheduleNext();
   }
 
-  createObstacle() {
-    const obstacle = new Sprite(this.asset);
-    obstacle.anchor.set(0.5, 0); // top-center
-    return obstacle;
+  clearSpawnInterval() {
+    this.timeouts.forEach(timeoutId => {
+      clearTimeout(timeoutId);
+    });
+    this.timeouts = [];
+
+    this.spritesPool.forEach(sprite => {
+      gsap.killTweensOf(sprite);
+      this.container.removeChild(sprite);
+      this.spritesPool.delete(sprite);
+      sprite.destroy();
+    });
+
+    this.container.position.x = 0;
   }
 
-  // ---------- Helpers coordinate globali <-> locali ----------
+  clearSprite(sprite) {
+    if (!this.spritesPool.has(sprite)) {
+      console.error("Sprite not found in spritesPool, cannot clear.");
+      return;
+    }
+
+    this.spritesPool.delete(sprite);
+    this.container.removeChild(sprite);
+    sprite.destroy();
+  }
+
+  resize() {
+    if (!this.texture) {
+      return;
+    }
+
+    this.spritesPool.forEach(sprite => {
+      const scaleFactor = this.gameInstance.app.screen.height / this.texture.height;
+      const newScale = this.configs.spriteMainScale * sprite._randomScale * scaleFactor;
+      sprite.scale.set(newScale);
+
+      sprite.position.x = sprite._spawnX * scaleFactor / sprite._scaleFactor;
+      sprite._spawnX = sprite.position.x;
+
+      const quarterHeight = (this.texture.height * newScale) / 4;
+      sprite.position.y = (this.configs.yOffset * scaleFactor) - quarterHeight;
+
+      sprite._scaleFactor = scaleFactor;
+    });
+  }
+
+  update(dt) {
+    if (!this.texture) {
+      return;
+    }
+
+    // Animate
+    this.container.position.x -= this.speed * dt;
+
+    // Initiate
+    if (!this.timeouts.length) {
+      this.startSpawnInterval();
+    }
+
+    // Clear
+    this.spritesPool.forEach(sprite => {
+      if (sprite.position.x < -sprite.width) {
+        this.clearSprite(sprite);
+      }
+    })
+
+    // Redraw debug overlay
+    this.drawDebugHitboxes();
+  }
+
+  /**
+   * ANIMATION
+   */
   globalToLocalPoint(xPx, yPx) {
-    const pLocal = this.container.toLocal({ x: xPx, y: yPx });
-    return pLocal;
+    return this.container.toLocal({ x: xPx, y: yPx });
   }
-
-  globalYToLocal(yPx) {
-    return this.globalToLocalPoint(0, yPx).y;
-  }
-
   globalXToLocal(xPx) {
     return this.globalToLocalPoint(xPx, 0).x;
   }
-
-  screenLeftLocalX() {
-    return this.globalXToLocal(0);
-  }
-
-  screenRightLocalX() {
-    return this.globalXToLocal(this.gameInstance.app.screen.width);
-  }
-
-  // ---------- Calcoli percentuali ----------
-  calculateObstacleY() {
-    const h = this.gameInstance.app.screen.height;
-    const yPx = this.yPercent * h;
-    return this.globalYToLocal(yPx);
-  }
-
-  calculateSpacingLocalX() {
-    const w = this.gameInstance.app.screen.width;
-    const spacingPx = this.xSpacingPercent * w;
-    return this.globalXToLocal(spacingPx) - this.globalXToLocal(0);
-  }
-
-  // ---------- Generazione ----------
-  generateInitialObstacles() {
-    const rightEdgeLocal = this.screenRightLocalX();
-    const spacingLocal = this.calculateSpacingLocalX();
-
-    const numObstacles = Math.floor(Math.random() * 5) + 3;
-
-    for (let i = 0; i < numObstacles; i++) {
-      const obstacle = this.getObstacleFromPool();
-      if (!obstacle) break;
-
-      obstacle.x = rightEdgeLocal + (i * spacingLocal);
-
-      const randomScale = this.scaleVariations[Math.floor(Math.random() * this.scaleVariations.length)];
-      obstacle.originalScaleMultiplier = randomScale;
-
-      this.setObstacleScale(obstacle, randomScale);
-      obstacle.y = this.calculateObstacleY();
-
-      obstacle.visible = true;
-      this.activeObstacles.push(obstacle);
-      this.lastObstacleX = obstacle.x;
-    }
-  }
-
-  getObstacleFromPool() {
-    return this.obstaclePool.find(o => !o.visible);
-  }
-
-  returnObstacleToPool(obstacle) {
-    obstacle.visible = false;
-    const idx = this.activeObstacles.indexOf(obstacle);
-    if (idx > -1) this.activeObstacles.splice(idx, 1);
-  }
-
-  setObstacleScale(obstacle, scaleMultiplier) {
-    const currentHeight = this.gameInstance.app.screen.height;
-    const scaleRatio = currentHeight / this.baseHeight;
-    const screenHeight = this.gameInstance.app.screen.height;
-    const maxHeight = screenHeight * 0.5;
-
-    let newScale = this.baseScale * scaleRatio * scaleMultiplier;
-
-    const potentialHeight = obstacle.texture.height * newScale;
-    if (potentialHeight > maxHeight) {
-      newScale = maxHeight / obstacle.texture.height;
-    }
-
-    obstacle.scale.set(newScale);
-  }
-
-  generateNewObstacle() {
-    const obstacle = this.getObstacleFromPool();
-    if (!obstacle) return;
-
-    const spacingLocal = this.calculateSpacingLocalX();
-
-    obstacle.x = this.lastObstacleX + spacingLocal;
-
-    const randomScale = this.scaleVariations[Math.floor(Math.random() * this.scaleVariations.length)];
-    obstacle.originalScaleMultiplier = randomScale;
-
-    this.setObstacleScale(obstacle, randomScale);
-    obstacle.y = this.calculateObstacleY();
-
-    obstacle.visible = true;
-    this.activeObstacles.push(obstacle);
-    this.lastObstacleX = obstacle.x;
+  globalYToLocal(yPx) {
+    return this.globalToLocalPoint(0, yPx).y;
   }
 
   animateObstacleHit(
     obstacle,
     {
-      fallYPercent = 0.91,     // punto Y finale come % dell'altezza schermo
-      nudgeXPercent = 0.015,   // spintarella iniziale verso destra (% larghezza schermo)
-      shakeXPercent = 0.005,   // ampiezza shake orizzontale (% larghezza schermo)
-      shakeDuration = 0.35,    // durata totale dello shake
-      shakeRepeats = 4,        // numero di “mezze-oscillazioni” (yoyo)
-      fallDuration = 0.6,      // durata della caduta
-      rotateSide = "left"     // "right" => +90°, "left" => -90°
+      fallYPercent = 0.91, // final Y point as % of screen height
+      nudgeXPercent = 0.015, // initial push to the right (% of screen width)
+      shakeXPercent = 0.005, // horizontal shake amplitude (% of screen width)
+      shakeDuration = 0.35, // total shake duration
+      shakeRepeats = 4, // number of "half-oscillations" (yoyo)
+      fallDuration = 0.6, // fall duration
+      rotateSide = "left" // "right" => +90°, "left" => -90°
     } = {}
   ) {
-    if (!obstacle || !obstacle.visible) return;
+    if (!obstacle) {
+      return;
+    }
 
-    // (opzionale) blocca la fisica/movimento dell'update su questo ostacolo
-    obstacle._isAnimating = true;
+    obstacle._isAnimating = true; // Not used
 
     const startX = obstacle.x;
 
-    // Calcoli in coordinate locali del container usando percentuali di schermo
     const screenW = this.gameInstance.app.screen.width;
     const screenH = this.gameInstance.app.screen.height;
 
@@ -243,18 +223,17 @@ export class ObstacleManager {
     const tl = gsap.timeline({
       defaults: { ease: "power2.out" },
       onComplete: () => {
-        // (opzionale) stato finale
-        obstacle._isAnimating = false; // se vuoi sbloccare di nuovo il movimento
+        obstacle._isAnimating = false;
       }
     });
 
-    // 1) Spintarella verso destra
+    // 1) Push to the right
     tl.to(obstacle, {
       x: obstacle.x + nudgeLocalX,
       duration: 0.12
     });
 
-    // 2) Shake orizzontale (yoyo)
+    // 2) Horizontal shake
     tl.to(obstacle, {
       x: `+=${shakeLocalX}`,
       duration: shakeDuration / (shakeRepeats || 1),
@@ -263,13 +242,13 @@ export class ObstacleManager {
       ease: "sine.inOut"
     });
 
-    // 3) Caduta + rotazione (in parallelo)
+    // 3.1) Fall down
     tl.to(obstacle, {
       y: groundLocalY,
       duration: fallDuration,
       ease: "power2.in"
     });
-
+    // 3.2) Rotate
     tl.to(
       obstacle,
       {
@@ -278,53 +257,17 @@ export class ObstacleManager {
         duration: fallDuration,
         ease: "power1.in"
       },
-      "<" // parte insieme alla caduta
+      "<" // sync with fall down
     );
 
-    return tl; // così puoi gestirla dall’esterno se ti serve
+    return tl;
   }
 
-  resize() {
-    this.activeObstacles.forEach(obstacle => {
-      this.setObstacleScale(obstacle, obstacle.originalScaleMultiplier);
-      obstacle.y = this.calculateObstacleY();
-    });
-    // il layer di debug si ridisegna al prossimo update
-  }
 
-  update(dt) {
-    const leftEdgeLocal = this.screenLeftLocalX();
-    const rightEdgeLocal = this.screenRightLocalX();
-    const spacingLocal = this.calculateSpacingLocalX();
-
-    for (let i = this.activeObstacles.length - 1; i >= 0; i--) {
-      const obstacle = this.activeObstacles[i];
-      obstacle.x -= this.speed * dt;
-
-      if (obstacle.x + (obstacle.width * 0.5) < leftEdgeLocal) {
-        this.returnObstacleToPool(obstacle);
-      }
-    }
-
-    const rightmostX = this.activeObstacles.reduce((r, o) => Math.max(r, o.x), -Infinity);
-
-    if (rightmostX < rightEdgeLocal + spacingLocal) {
-      if (Math.random() < 0.7) {
-        this.generateNewObstacle();
-      }
-    }
-
-    // Redraw debug overlay
-    this.drawDebugHitboxes();
-  }
 
   // ---------- Collision / Hitbox ----------
-  getObstacleBounds(obstacle) {
-    return obstacle.getBounds(); // bounds globali (world)
-  }
-
   getHitbox(obstacle) {
-    const originalBounds = this.getObstacleBounds(obstacle); // global/world
+    const originalBounds = obstacle.getBounds();
 
     const hitboxWidth = originalBounds.width * this.hitboxConfig.width;
     const hitboxHeight = originalBounds.height * this.hitboxConfig.height;
@@ -339,7 +282,7 @@ export class ObstacleManager {
       (originalBounds.height - hitboxHeight) / 2 +
       (originalBounds.height * this.hitboxConfig.offsetY);
 
-    return { x: hitboxX, y: hitboxY, width: hitboxWidth, height: hitboxHeight }; // global/world
+    return { x: hitboxX, y: hitboxY, width: hitboxWidth, height: hitboxHeight };
   }
 
   // Converte un rettangolo globale in locale del container
@@ -360,9 +303,7 @@ export class ObstacleManager {
     const g = this.debugGraphics;
     g.clear();
 
-    for (const obstacle of this.activeObstacles) {
-      if (!obstacle.visible) continue;
-
+    for (const obstacle of this.spritesPool) {
       const hbGlobal = this.getHitbox(obstacle);
       const hbLocal = this.hitboxGlobalToLocalRect(hbGlobal);
 
@@ -370,13 +311,5 @@ export class ObstacleManager {
         .stroke({ width: 1, color: 0xff0000, alpha: 1 })
         .fill({ color: 0xff0000, alpha: 0.15 });
     }
-  }
-
-  // Utility
-  destroy() {
-    this.container.removeChildren();
-    this.gameInstance.app.stage.removeChild(this.container);
-    this.obstaclePool = [];
-    this.activeObstacles = [];
   }
 }

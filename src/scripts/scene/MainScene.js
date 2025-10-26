@@ -41,10 +41,8 @@ export class MainScene extends EventEmitter {
         this.coins.speed = this.initialSpeed.coins;
         this.obstacles.speed = this.initialSpeed.obstacles;
 
-        this.isPlaying = true;
-
         this.coins.clearAllSprites();
-        this.obstacles.resetLevel();
+        this.obstacles.clearSpawnInterval();
         this.enemy.fixedSpeed = false;
         if (this.enemy.dir === -1) {
             this.speed = 240;
@@ -54,9 +52,11 @@ export class MainScene extends EventEmitter {
 
         this.character.play();
 
+        this.isPlaying = true;
+
         this.gameInstance.container.addEventListener('pointerdown', () => {
-              this.character.jump();
-          });
+            this.character.jump();
+        });
     }
 
     levelUp() {
@@ -116,23 +116,25 @@ export class MainScene extends EventEmitter {
             });
         }
 
-        if (this.character.isAlive && !this.enemy.fixedSpeed) {
-            if (testForAABB(this.character.getHitbox(), this.enemy.getHitbox())) {
-                this.emit("game-over");
-
-                this.character.die("enemy", this.enemy.dir);
-                this.enemy.fixedSpeed = true;
-                this.enemy.playAnim("attack");
-            }
-        }
+        // if (this.character.isAlive && !this.enemy.fixedSpeed) {
+        //     if (testForAABB(this.character.getHitbox(), this.enemy.getHitbox())) {
+        //         this.emit("game-over");
+        //
+        //         this.character.die("enemy", this.enemy.dir);
+        //         this.enemy.fixedSpeed = true;
+        //         this.obstacles.isRunning = false;
+        //         this.enemy.playAnim("attack");
+        //     }
+        // }
 
         if (this.character.isAlive) {
-            this.obstacles.activeObstacles.forEach((obstacle) => {
+            this.obstacles.spritesPool.forEach((obstacle) => {
                 if (testForAABB(this.character.getHitbox(), this.obstacles.getHitbox(obstacle))) {
                     this.emit("game-over");
 
                     this.character.die("obstacle");
                     this.enemy.fixedSpeed = true;
+                    this.obstacles.isRunning = false;
                     this.obstacles.animateObstacleHit(obstacle);
                 }
             });

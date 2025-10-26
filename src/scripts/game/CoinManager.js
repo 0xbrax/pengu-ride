@@ -13,10 +13,8 @@ export class CoinManager {
     this.container.zIndex = 10;
     this.gameInstance.app.stage.addChild(this.container);
 
-    this.speed = COIN_SPEED;
-
-    this.spritesPool = [];
     this.texture = new Texture(Assets.get(this.ASSETS_MAP.texture[0].alias)); // coin
+    this.speed = COIN_SPEED;
 
     this.configs = {
       spriteScale: 0.8, // Not implemented yet
@@ -50,14 +48,11 @@ export class CoinManager {
     const screenWidthInSlots = Math.ceil(this.gameInstance.app.screen.width / slotSize);
     this.lastGridSlotXAvailable = screenWidthInSlots + this.triggerDistance;
 
-    setInterval(() => {
-      console.log("COINS POOL LENGTH: ", this.spritesPool.length);
-
-    }, 10_000);
+    this.spritesPool = new Set();
   }
 
   createSprites() {
-    const pattern = this.getWeightedRandomPattern();
+    const pattern = "V" //this.getWeightedRandomPattern();
 
     switch (pattern) {
       case "line":
@@ -108,7 +103,7 @@ export class CoinManager {
     }
 
     // Fallback
-    console.warn("No pattern found with the specified weight, returning a random pattern.");
+    console.log("No pattern found with the specified weight, returning a random pattern.");
     const randomIndex = Math.floor(rngFunction() * keys.length);
     return keys[randomIndex];
   }
@@ -152,10 +147,12 @@ export class CoinManager {
     }
 
     // Animate
-    this.container.position.x -= this.speed * dt;
+    if (this.spritesPool.size > 0) {
+      this.container.position.x -= this.speed * dt;
+    }
 
     // Initiate
-    if (this.spritesPool.length === 0) {
+    if (this.spritesPool.size === 0) {
       this.createSprites();
     }
 
@@ -173,35 +170,39 @@ export class CoinManager {
     // Clear
     const leftBoundary = slotSize * -this.triggerDistance;
 
-    for (const sprite of this.spritesPool) {
+    this.spritesPool.forEach((sprite) => {
       const spriteWorldX = sprite.position.x + this.container.position.x;
       if (spriteWorldX < leftBoundary) {
         this.clearSprite(sprite);
       }
-    }
+    });
   }
 
   clearSprite(sprite) {
-    const index = this.spritesPool.indexOf(sprite);
-    if (index === -1) {
-      console.error("Sprite not found in aliveSprites array, cannot clear.");
+    if (!this.spritesPool.has(sprite)) {
+      console.error("Sprite not found in spritesPool, cannot clear.");
       return;
     }
 
-    this.spritesPool.splice(index, 1);
+    this.spritesPool.delete(sprite);
     this.container.removeChild(sprite);
     sprite.destroy();
   }
 
   clearAllSprites() {
-    this.spritesPool.forEach((sprite) => {
-      this.clearSprite(sprite);
-    });
-
     const slotSize = this.gameInstance.app.screen.height / this.configs.totalRows;
 
     const screenWidthInSlots = Math.ceil(this.gameInstance.app.screen.width / slotSize);
     this.lastGridSlotXAvailable = screenWidthInSlots + this.triggerDistance;
+    this.container.position.x = 0;
+
+    this.spritesPool.forEach((sprite) => {
+      this.clearSprite(sprite);
+    });
+
+    if (this.spritesPool.size > 0) {
+      console.warn("Sprites pool size after clear: ", this.spritesPool.size);
+    }
   }
 
   destroy() {
@@ -215,7 +216,6 @@ export class CoinManager {
     this.container = null;
   }
 
-  // TODO check min and max row
   /**
    * GENERATION PATTERNS
    */
@@ -237,7 +237,7 @@ export class CoinManager {
       sprite.position.x = sprite.width / 2 + ((i + this.lastGridSlotXAvailable) * slotSize);
       sprite.position.y = sprite.height / 2 + (randomRow * slotSize);
 
-      this.spritesPool.push(sprite);
+      this.spritesPool.add(sprite);
       this.container.addChild(sprite);
 
       if (i === maxLength - 1) {
@@ -250,8 +250,7 @@ export class CoinManager {
     const maxLength = getRandomInt(this.configs.minCols, this.configs.maxCols);
     const minRow = this.configs.deadRowsTop;
     const maxRow = this.configs.totalRows - this.configs.deadRowsBottom - 1;
-    let randomStartRow = getRandomInt(minRow, maxRow);
-    let currentRow = randomStartRow;
+    let currentRow = getRandomInt(minRow, maxRow);
 
     const slotSize = this.gridSizes.height;
 
@@ -271,7 +270,7 @@ export class CoinManager {
         currentRow = getRandomInt(minRow, maxRow);
       }
 
-      this.spritesPool.push(sprite);
+      this.spritesPool.add(sprite);
       this.container.addChild(sprite);
 
       if (i === maxLength - 1) {
@@ -284,8 +283,7 @@ export class CoinManager {
     const maxLength = getRandomInt(this.configs.minCols, this.configs.maxCols);
     const minRow = this.configs.deadRowsTop;
     const maxRow = this.configs.totalRows - this.configs.deadRowsBottom - 1;
-    let randomStartRow = getRandomInt(minRow, maxRow);
-    let currentRow = randomStartRow;
+    let currentRow = getRandomInt(minRow, maxRow);
 
     const slotSize = this.gridSizes.height;
 
@@ -305,7 +303,7 @@ export class CoinManager {
         currentRow = getRandomInt(minRow, maxRow);
       }
 
-      this.spritesPool.push(sprite);
+      this.spritesPool.add(sprite);
       this.container.addChild(sprite);
 
       if (i === maxLength - 1) {
@@ -318,8 +316,7 @@ export class CoinManager {
     const maxLength = getRandomInt(this.configs.minCols, this.configs.maxCols);
     const minRow = this.configs.deadRowsTop;
     const maxRow = this.configs.totalRows - this.configs.deadRowsBottom - 1;
-    let randomStartRow = getRandomInt(minRow, maxRow);
-    let currentRow = randomStartRow;
+    let currentRow = getRandomInt(minRow, maxRow);
 
     const halfLength = Math.floor(maxLength / 2);
     let direction = -1; // -1 = up, +1 = down
@@ -332,6 +329,9 @@ export class CoinManager {
       sprite.height = slotSize;
       sprite.width = slotSize;
 
+      sprite.position.x = sprite.width / 2 + ((i + this.lastGridSlotXAvailable) * slotSize);
+      sprite.position.y = sprite.height / 2 + (currentRow * slotSize);
+
       if (i === halfLength) {
         direction = 1;
       }
@@ -339,17 +339,14 @@ export class CoinManager {
       currentRow += direction;
 
       if (currentRow < minRow) {
-        currentRow = minRow + 1;
+        currentRow = minRow;
         direction = 1;
       } else if (currentRow > maxRow) {
-        currentRow = maxRow + 1;
+        currentRow = maxRow;
         direction = -1;
       }
 
-      sprite.position.x = sprite.width / 2 + ((i + this.lastGridSlotXAvailable) * slotSize);
-      sprite.position.y = sprite.height / 2 + (currentRow * slotSize);
-
-      this.spritesPool.push(sprite);
+      this.spritesPool.add(sprite);
       this.container.addChild(sprite);
 
       if (i === maxLength - 1) {
@@ -362,8 +359,7 @@ export class CoinManager {
     const maxLength = getRandomInt(this.configs.minCols, this.configs.maxCols);
     const minRow = this.configs.deadRowsTop;
     const maxRow = this.configs.totalRows - this.configs.deadRowsBottom - 1;
-    let randomStartRow = getRandomInt(minRow, maxRow);
-    let currentRow = randomStartRow;
+    let currentRow = getRandomInt(minRow, maxRow);
 
     const halfLength = Math.floor(maxLength / 2);
     let direction = 1; // 1 = up, -1 = down
@@ -375,6 +371,9 @@ export class CoinManager {
       sprite.anchor.set(0.5);
       sprite.height = slotSize;
       sprite.width = slotSize;
+
+      sprite.position.x = sprite.width / 2 + ((i + this.lastGridSlotXAvailable) * slotSize);
+      sprite.position.y = sprite.height / 2 + (currentRow * slotSize);
 
       if (i === halfLength) {
         direction = -1;
@@ -390,10 +389,7 @@ export class CoinManager {
         direction = -1;
       }
 
-      sprite.position.x = sprite.width / 2 + ((i + this.lastGridSlotXAvailable) * slotSize);
-      sprite.position.y = sprite.height / 2 + (currentRow * slotSize);
-
-      this.spritesPool.push(sprite);
+      this.spritesPool.add(sprite);
       this.container.addChild(sprite);
 
       if (i === maxLength - 1) {
@@ -422,7 +418,7 @@ export class CoinManager {
         sprite.position.x = sprite.width / 2 + ((i + this.lastGridSlotXAvailable) * slotSize);
         sprite.position.y = sprite.height / 2 + ((randomRow + j) * slotSize);
 
-        this.spritesPool.push(sprite);
+        this.spritesPool.add(sprite);
         this.container.addChild(sprite);
       }
 
@@ -451,7 +447,7 @@ export class CoinManager {
       sprite.position.x = sprite.width / 2 + ((i + this.lastGridSlotXAvailable) * slotSize);
       sprite.position.y = sprite.height / 2 + (randomRow * slotSize);
 
-      this.spritesPool.push(sprite);
+      this.spritesPool.add(sprite);
       this.container.addChild(sprite);
 
       if (i === maxLength - 1) {
