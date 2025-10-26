@@ -70,10 +70,38 @@ export const ASSETS_MAP = {
             alias: "icicle",
             src: "/texture/icicle.png"
         },
+        // Not used
         // {
         //     alias: "diamond",
         //     src: "/texture/diamond.png"
         // }
     ],
-    // audio: [],
+    audio: [
+        {
+            alias: "background-music-track",
+            src: "/audio/josh-mease-4-on-the-floor-8bit_192.mp3",
+            volume: 0.2,
+            loop: true,
+        },
+        {
+            alias: "tick-sfx",
+            src: "/audio/tick-sfx_192.mp3",
+            volume: 0.1,
+        },
+        {
+            alias: "jump-sfx",
+            src: "/audio/jump-sfx_192.mp3",
+            volume: 0.5,
+        },
+        {
+            alias: "win-sfx",
+            src: "/audio/win-sfx_192.mp3",
+            volume: 1,
+        },
+        {
+            alias: "game-over-sfx",
+            src: "/audio/game-over-sfx_192.mp3",
+            volume: 0.5,
+        },
+    ],
 };

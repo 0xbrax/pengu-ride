@@ -3,6 +3,8 @@ import { Loader } from "@/scripts/system/Loader.js";
 import { SceneManager } from "@/scripts/scene/SceneManager.js";
 import { LoadingScene } from "@/scripts/scene/LoadingScene.js";
 import { MainScene } from "@/scripts/scene/MainScene.js";
+import {ASSETS_MAP} from "@/scripts/system/ASSETS.js";
+import {$globals} from "@/scripts/system/SETUP.js";
 
 let instance = null; // one instance only
 
@@ -18,6 +20,8 @@ export class App extends EventEmitter {
         this.container = container;
         this.app = null;
         this.sceneManager = null;
+
+        this.ASSETS_MAP = ASSETS_MAP;
 
         void this.run();
     }
@@ -72,6 +76,8 @@ export class App extends EventEmitter {
                 requestAnimationFrame(() => {
                     console.log("READY");
 
+                    this.audioMixer();
+
                     this.emit("ready");
                     this.sceneManager.destroy();
 
@@ -90,6 +96,14 @@ export class App extends EventEmitter {
         window.addEventListener('resize', () => {
             this.resize(this.originalRect);
         });
+    }
+
+    audioMixer() {
+      this.ASSETS_MAP.audio.forEach(asset => {
+        const sound = $globals.sounds.get(asset.alias);
+        sound.volume(asset.volume);
+        sound.loop(asset.loop || false);
+      });
     }
 
     resize(originalRect) {

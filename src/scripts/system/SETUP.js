@@ -5,7 +5,8 @@ export const $configs = {
 };
 
 export const $globals = {
-    // isAudioActive: true,
-    isFullscreenActive: false,
+    sounds: new Map(),
+    isAudioActive: false, // Not implemented yet
+    isFullscreenActive: false, // Not implemented yet
     isWakelockActive: false,
 };

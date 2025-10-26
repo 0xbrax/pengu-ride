@@ -6,7 +6,7 @@ import {Character} from "@/scripts/game/Character.js";
 import {Enemy} from "@/scripts/game/Enemy.js";
 import {testForAABB} from "@/scripts/system/utils.js";
 import {ObstacleManager} from "@/scripts/game/ObstacleManager.js";
-import {$configs} from "@/scripts/system/SETUP.js";
+import {$configs, $globals} from "@/scripts/system/SETUP.js";
 
 export class MainScene extends EventEmitter {
     constructor() {
@@ -55,12 +55,16 @@ export class MainScene extends EventEmitter {
         this.isPlaying = true;
 
         this.gameInstance.container.addEventListener('pointerdown', () => {
-            this.character.jump();
+          $globals.sounds.get("jump-sfx").play();
+
+          this.character.jump();
         });
     }
 
     levelUp() {
-        this.currentLevel++;
+      $globals.sounds.get("win-sfx").play();
+
+      this.currentLevel++;
         this.nextLevelThreshold += $configs.SCORE_PER_LEVEL;
 
         const speedIncrement = 0.02;
@@ -116,16 +120,16 @@ export class MainScene extends EventEmitter {
             });
         }
 
-        // if (this.character.isAlive && !this.enemy.fixedSpeed) {
-        //     if (testForAABB(this.character.getHitbox(), this.enemy.getHitbox())) {
-        //         this.emit("game-over");
-        //
-        //         this.character.die("enemy", this.enemy.dir);
-        //         this.enemy.fixedSpeed = true;
-        //         this.obstacles.isRunning = false;
-        //         this.enemy.playAnim("attack");
-        //     }
-        // }
+        if (this.character.isAlive && !this.enemy.fixedSpeed) {
+            if (testForAABB(this.character.getHitbox(), this.enemy.getHitbox())) {
+                this.emit("game-over");
+
+                this.character.die("enemy", this.enemy.dir);
+                this.enemy.fixedSpeed = true;
+                this.obstacles.isRunning = false;
+                this.enemy.playAnim("attack");
+            }
+        }
 
         if (this.character.isAlive) {
             this.obstacles.spritesPool.forEach((obstacle) => {

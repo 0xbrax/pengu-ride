@@ -1,6 +1,6 @@
-import { App as PixiApp } from "@/scripts/system/App.js";
+import {App as PixiApp} from "@/scripts/system/App.js";
 import {useCallback, useEffect, useRef, useState} from "react";
-import {$configs} from "@/scripts/system/SETUP.js";
+import {$configs, $globals} from "@/scripts/system/SETUP.js";
 import Loading from "@/components/Loading.jsx";
 import PointBalance from "@/components/PointBalance.jsx";
 import StartGame from "@/components/StartGame.jsx";
@@ -48,10 +48,14 @@ export default function ReactApp() {
       });
 
       gameInstance.on("coin-collected", () => {
+        $globals.sounds.get("tick-sfx").play();
+
         setBalance(((prev) => (prev + $configs.SCORE_PER_COIN)));
       });
 
       gameInstance.on("game-over", () => {
+        $globals.sounds.get("game-over-sfx").play();
+
         const timeout = setTimeout(() => {
           setIsGamePlaying(false);
 

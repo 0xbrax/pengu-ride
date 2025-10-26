@@ -52,7 +52,7 @@ export class CoinManager {
   }
 
   createSprites() {
-    const pattern = "V" //this.getWeightedRandomPattern();
+    const pattern = this.getWeightedRandomPattern();
 
     switch (pattern) {
       case "line":
@@ -382,10 +382,10 @@ export class CoinManager {
       currentRow += direction;
 
       if (currentRow < minRow) {
-        currentRow = minRow + 1;
+        currentRow = minRow;
         direction = 1;
       } else if (currentRow > maxRow) {
-        currentRow = maxRow + 1;
+        currentRow = maxRow;
         direction = -1;
       }
 

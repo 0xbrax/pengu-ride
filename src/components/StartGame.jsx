@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { gsap } from 'gsap';
 import { useGSAP } from '@gsap/react';
+import {$globals} from "@/scripts/system/SETUP.js";
 
 export default function StartGame({
   startGame,
@@ -34,6 +35,10 @@ export default function StartGame({
   const handleCountdown = contextSafe(() => {
     if (isCountingDown) {
       return;
+    }
+
+    if (!$globals.sounds.get("background-music-track").playing()) {
+      $globals.sounds.get("background-music-track").play();
     }
 
     setIsCountingDown(true);

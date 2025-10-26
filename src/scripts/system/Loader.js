@@ -1,6 +1,7 @@
 import { Assets, EventEmitter } from "pixi.js";
 import { Howl } from 'howler';
 import { ASSETS_MAP } from "@/scripts/system/ASSETS.js";
+import {$globals} from "@/scripts/system/SETUP.js";
 
 export class Loader extends EventEmitter {
     constructor() {
@@ -24,48 +25,44 @@ export class Loader extends EventEmitter {
         this.emit('progress', progress);
     }
 
-  // Option 4: Parallel with individual progress - Best of both worlds
   loadAssets() {
     return new Promise(async resolve => {
       const allAssets = [];
 
-      // Collect all assets with progress tracking
       for (const key in this.ASSETS_MAP) {
+        if (key === "audio") {
+          for (const currentAsset of this.ASSETS_MAP[key]) {
+            allAssets.push(
+              this.loadSound({ alias: currentAsset.alias, src: currentAsset.src })
+                .then(() => this.updateProgress())
+            );
+          }
+          continue;
+        }
+
         for (const currentAsset of this.ASSETS_MAP[key]) {
-          // Create promise that updates progress immediately when this specific asset completes
           allAssets.push(
             Assets.load({ alias: currentAsset.alias, src: currentAsset.src })
-              .then(() => this.updateProgress()) // Progress updates as soon as this asset finishes
+              .then(() => this.updateProgress())
           );
         }
       }
 
-      // Load all assets in parallel - maximum speed
-      // Progress updates smoothly as individual assets complete
-      // Best approach: fast loading + smooth progress bar
       await Promise.all(allAssets);
 
       resolve();
     });
   }
 
-    loadSound(src) {
+    loadSound({ alias, src }) {
         return new Promise((resolve) => {
             const sound = new Howl({
                 src: [src],
                 onload: () => {
+                    $globals.sounds.set(alias, sound);
                     resolve(sound);
                 },
             });
         });
     }
-
-    // TODO use zustand
-    // audioMixer() {
-    //     $globals.assets.audio['BackgroundMusicTrack'].volume(0.3);
-    //     $globals.assets.audio['BackgroundMusicTrack'].loop(true);
-    //
-    //     $globals.assets.audio['SlotClickSfx'].volume(0.5);
-    //     $globals.assets.audio['SlotTickSfx'].volume(0.8);
-    // }
 }

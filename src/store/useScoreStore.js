@@ -11,7 +11,7 @@ export const useScoreStore = create(
           set({ bestScore: score });
         }
       },
-      resetBest: () => set({ bestScore: 0 }),
+      resetBest: () => set({ bestScore: 0 }), // Not used
     }),
     {
       name: "score-store",
