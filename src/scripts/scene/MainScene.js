@@ -75,12 +75,6 @@ export class MainScene extends EventEmitter {
     );
     this.coins.speed *= speedMultiplier;
     this.obstacles.speed *= speedMultiplier;
-
-    this.emit("level-up", {
-      level: this.currentLevel,
-      nextThreshold: this.nextLevelThreshold,
-      speedMultiplier: speedMultiplier,
-    });
   }
 
   resize(originalRect) {
@@ -108,9 +102,10 @@ export class MainScene extends EventEmitter {
     if (this.character.isAlive) {
       this.coins.spritesPool.forEach((coin) => {
         if (testForAABB(this.character.getHitbox(), coin.getBounds())) {
-          this.emit("coin-collected");
-
           this.scoreBalance += $configs.SCORE_PER_COIN;
+
+          this.emit("coin-collected", this.scoreBalance);
+
           this.coins.clearSprite(coin);
 
           if (this.scoreBalance >= this.nextLevelThreshold && this.currentLevel < $configs.MAX_LEVEL) {

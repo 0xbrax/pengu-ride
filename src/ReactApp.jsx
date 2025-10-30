@@ -47,10 +47,10 @@ export default function ReactApp() {
         setIsGameReady(true);
       });
 
-      gameInstance.on("coin-collected", () => {
+      gameInstance.on("coin-collected", (scoreBalance) => {
         $globals.sounds.get("tick-sfx").play();
 
-        setBalance(((prev) => (prev + $configs.SCORE_PER_COIN)));
+        setBalance(scoreBalance);
       });
 
       gameInstance.on("game-over", () => {

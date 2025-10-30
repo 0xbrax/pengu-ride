@@ -82,8 +82,8 @@ export class App extends EventEmitter {
           this.sceneManager.destroy();
 
           this.sceneManager.start(new MainScene());
-          this.sceneManager.scene.on("coin-collected", () => {
-            this.emit("coin-collected");
+          this.sceneManager.scene.on("coin-collected", (...args) => {
+            this.emit("coin-collected", ...args);
           });
           this.sceneManager.scene.on("game-over", () => {
             this.emit("game-over");
