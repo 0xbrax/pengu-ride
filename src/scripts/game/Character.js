@@ -93,7 +93,7 @@ export class Character {
   }
 
   jump() {
-    if (!this.spine || !this.isAlive) {
+    if (!this.spine) {
       return;
     }
 
@@ -285,7 +285,7 @@ export class Character {
 
     // Integrate position
     this.spine.y += this.vy * dt;
-    
+
     // Clamp to bounds
     if (this.spine.y > this.maxY) {
       this.spine.y = this.maxY;

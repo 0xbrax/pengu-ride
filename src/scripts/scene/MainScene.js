@@ -55,8 +55,11 @@ export class MainScene extends EventEmitter {
     this.isPlaying = true;
 
     this.gameInstance.container.addEventListener("pointerdown", () => {
-      $globals.sounds.get("jump-sfx").play();
+      if (!this.character.isAlive) {
+        return;
+      }
 
+      $globals.sounds.get("jump-sfx").play();
       this.character.jump();
     });
   }
