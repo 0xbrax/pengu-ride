@@ -25,29 +25,34 @@ export class LoadingScene {
     this.updateSpriteSize();
     this.gameInstance.app.stage.addChild(this.sprite);
 
-    // this.blurFilter = new BlurFilter({
-    //   strength: 3, // Overall blur strength
-    //   quality: 2, // Blur quality (higher = better but slower)
-    //   kernelSize: 5, // Size of blur kernel matrix: 3, 5, 7, 9, 15 ... (higher = better but slower)
-    //   repeatEdgePixels: true, // Enable edge pixel clamping
-    // });
-    //
-    // this.frostFilter = new Filter({
-    //   glProgram: new GlProgram({vertex: frostVertexShader, fragment: frostFragmentShader}),
-    //   resources: {
-    //     frostUniforms: {
-    //       uResolution: {
-    //         value: [
-    //           this.gameInstance.app.screen.width,
-    //           this.gameInstance.app.screen.height,
-    //         ], type: "vec2<f32>",
-    //       },
-    //       uProgress: {value: 1.0, type: "f32"}, // 1.0 ... 0.0
-    //     },
-    //   },
-    // });
-    //
-    // this.sprite.filters = [this.frostFilter, this.blurFilter];
+    this.blurFilter = new BlurFilter({
+      strength: 3, // Overall blur strength
+      quality: 2, // Blur quality (higher = better but slower)
+      kernelSize: 5, // Size of blur kernel matrix: 3, 5, 7, 9, 15 ... (higher = better but slower)
+      repeatEdgePixels: true, // Enable edge pixel clamping
+    });
+
+    this.frostGlProgram = new GlProgram({
+      vertex: frostVertexShader,
+      fragment: frostFragmentShader,
+    });
+
+    this.frostFilter = new Filter({
+      glProgram: this.frostGlProgram,
+      resources: {
+        frostUniforms: {
+          uResolution: {
+            value: [
+              this.gameInstance.app.screen.width,
+              this.gameInstance.app.screen.height,
+            ], type: "vec2<f32>",
+          },
+          uProgress: {value: 1.0, type: "f32"}, // 1.0 ... 0.0
+        },
+      },
+    });
+
+    this.sprite.filters = [this.frostFilter, this.blurFilter];
   }
 
   setProgress(progress) {
@@ -59,17 +64,17 @@ export class LoadingScene {
       return;
     }
 
-    // if (Math.abs(this.currentProgress - this.targetProgress) > 0.001) {
-    //   const difference = this.targetProgress - this.currentProgress;
-    //   const step = difference * this.animationSpeed * dt;
-    //
-    //   this.currentProgress += step;
-    //
-    //   this.currentProgress = Math.max(0, Math.min(1, this.currentProgress));
-    //
-    //   const reversedProgress = 1.0 - this.currentProgress;
-    //   this.frostFilter.resources.frostUniforms.uniforms.uProgress = reversedProgress;
-    // }
+    if (Math.abs(this.currentProgress - this.targetProgress) > 0.001) {
+      const difference = this.targetProgress - this.currentProgress;
+      const step = difference * this.animationSpeed * dt;
+
+      this.currentProgress += step;
+
+      this.currentProgress = Math.max(0, Math.min(1, this.currentProgress));
+
+      const reversedProgress = 1.0 - this.currentProgress;
+      this.frostFilter.resources.frostUniforms.uniforms.uProgress = reversedProgress;
+    }
   }
 
   updateSpriteSize() {
@@ -95,24 +100,24 @@ export class LoadingScene {
   }
 
   destroy() {
-    if (this.sprite && this.sprite.parent) {
-      this.sprite.parent.removeChild(this.sprite);
+    if (!this.sprite) {
+      return;
     }
 
-    if (this.blurFilter) {
-      this.blurFilter.destroy();
-      this.blurFilter = null;
-    }
+    // Keep clear order
+    this.sprite.filters = null;
 
-    if (this.frostFilter) {
-      this.frostFilter.destroy();
-      this.frostFilter = null;
-    }
+    this.blurFilter.destroy();
+    this.blurFilter = null;
 
-    if (this.sprite) {
-      this.sprite.destroy();
-      this.sprite = null;
-    }
+    this.frostFilter.destroy();
+    this.frostFilter = null;
+    this.frostGlProgram.destroy();
+    this.frostGlProgram = null;
+
+    this.gameInstance.app.stage.removeChild(this.sprite);
+    this.sprite.destroy();
+    this.sprite = null;
 
     this.gameInstance = null;
   }
