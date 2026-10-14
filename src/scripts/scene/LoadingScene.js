@@ -9,12 +9,15 @@ export class LoadingScene {
     this.currentProgress = 0.0;
     this.targetProgress = 0.0;
     this.animationSpeed = 2.0;
-
-    void this.createLoading();
+    this.isDestroyed = false;
   }
 
   async createLoading() {
     const texture = await Assets.load("/game-background.png");
+
+    if (this.isDestroyed) {
+      return;
+    }
 
     this.sprite = new TilingSprite({
       texture: texture,
@@ -60,7 +63,7 @@ export class LoadingScene {
   }
 
   update(dt) {
-    if (!this.sprite) {
+    if (!this.sprite || !this.frostFilter) {
       return;
     }
 
@@ -100,24 +103,33 @@ export class LoadingScene {
   }
 
   destroy() {
-    if (!this.sprite) {
-      return;
+    this.isDestroyed = true;
+
+    if (this.sprite) {
+      this.sprite.filters = null;
+
+      if (this.gameInstance?.app?.stage) {
+        this.gameInstance.app.stage.removeChild(this.sprite);
+      }
+
+      this.sprite.destroy();
+      this.sprite = null;
     }
 
-    // Keep clear order
-    this.sprite.filters = null;
+    if (this.blurFilter) {
+      this.blurFilter.destroy();
+      this.blurFilter = null;
+    }
 
-    this.blurFilter.destroy();
-    this.blurFilter = null;
+    if (this.frostFilter) {
+      this.frostFilter.destroy();
+      this.frostFilter = null;
+    }
 
-    this.frostFilter.destroy();
-    this.frostFilter = null;
-    this.frostGlProgram.destroy();
-    this.frostGlProgram = null;
-
-    this.gameInstance.app.stage.removeChild(this.sprite);
-    this.sprite.destroy();
-    this.sprite = null;
+    if (this.frostGlProgram) {
+      this.frostGlProgram.destroy();
+      this.frostGlProgram = null;
+    }
 
     this.gameInstance = null;
   }
